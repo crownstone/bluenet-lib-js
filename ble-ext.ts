@@ -57,6 +57,7 @@ class BleDeviceList {
 class BleExt {
 	ble = new BleBase();
 	devices = new BleDeviceList();
+	targetAddress;
 //	closestRssi = -128;
 //	closestAddress = "";
 	characteristics = {};
@@ -106,5 +107,63 @@ class BleExt {
 		if (callback) {
 			callback(true);
 		}
+	}
+
+	setTarget(address) {
+			this.targetAddress = address;
+	}
+
+	getDeviceList() { return this.devices; }
+
+	powerOn(callback) {
+		this.writePWM(255, callback);
+	}
+
+	powerOff(callback) {
+		this.writePWM(0, callback);
+	}
+
+	writePWM(pwm, callback) {
+		if (!this.isInitialized()) {
+			return;
+		}
+		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
+			return;
+		}
+		console.log("Set pwm to " + pwm);
+		this.ble.writePWM(this.targetAddress, pwm, callback);
+	}
+
+	readPWM(callback) {
+		if (!this.isInitialized()) {
+			return;
+		}
+		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
+			return;
+		}
+		console.log("Reading current PWM value");
+		this.ble.readPWM(this.targetAddress, callback);
+	}
+
+	writeMeshMessage(obj, callback) {
+		if (!this.isInitialized()) {
+			return;
+		}
+		if (!this.characteristics.hasOwnProperty(meshCharacteristicUuid)) {
+			return;
+		}
+		console.log("Send mesh message: ", obj);
+		this.ble.writeMeshMessage(this.targetAddress, obj, callback)
+	}
+
+	writeConfiguration(obj, callback) {
+		if (!this.isInitialized()) {
+			return;
+		}
+		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
+			return;
+		}
+		console.log("Set config");
+		this.ble.writeConfiguration(this.targetAddress, obj, callback);
 	}
 }
