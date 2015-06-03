@@ -1,5 +1,13 @@
 declare var BleBase;
 
+enum BleState {
+	uninitialized,
+	initialized,
+	scanning,
+	connecting,
+	connected
+}
+
 class BleDevice {
 	address = "";
 	name = "";
@@ -57,21 +65,28 @@ class BleDeviceList {
 class BleExt {
 	ble = new BleBase();
 	devices = new BleDeviceList();
-	targetAddress;
+	targetAddress : string;
 //	closestRssi = -128;
 //	closestAddress = "";
 	characteristics = {};
+	onConnectCallback;
+	state = BleState.uninitialized;
 	
 	// TODO: just inherit from base class
-	init(callback) {
+	init(successCB, errorCB) {
 		this.ble.init(function(enabled) {
-			if (callback) {
-				callback(enabled);
+			if (enabled) {
+				this.state = BleState.initialized;
+				if (successCB) successCB();
+			}
+			else {
+				if (errorCB) errorCB();
 			}
 		});
 	}
 	
-	startScan(callback) {
+	startScan(scanCB) {
+		this.state = BleState.scanning;
 		this.ble.startEndlessScan(function(obj) {
 			
 			//var index;
@@ -94,76 +109,124 @@ class BleExt {
 			//	this.closestAddress = obj.address;
 			//}
 			
-			if (callback) {
-				callback();
-			}
+			if (scanCB) scanCB(obj);
 		});
 //		}.bind(this));
 	}
 	
 	// TODO: just inherit from base class
-	stopScan(callback) {
+	stopScan(successCB, errorCB) {
+		this.state = BleState.initialized;
 		this.ble.stopEndlessScan();
-		if (callback) {
-			callback(true);
+		if (successCB) successCB();
+	}
+
+	connect(address, successCB, errorCB) {
+		if (address) {
+			this.setTarget(address);
 		}
+		this.state = BleState.connecting;
+		this.ble.connectDevice(this.targetAddress, 5, function(success) {
+			if (success) {
+				this.onConnect();
+				if (successCB) successCB();
+			}
+			else {
+				if (errorCB) errorCB();
+			}
+		});
+	}
+
+	// Called on successful connect
+	onConnect() {
+		this.state = BleState.connected;
+		if (this.onConnectCallback) this.onConnectCallback();
+	}
+
+	onDisconnect() {
+		this.state = BleState.initialized;
+		//this.targetAddress = "";
+		this.characteristics = {};
+	}
+
+	setConnectListener(func) {
+		this.onConnectCallback = func;
 	}
 
 	setTarget(address) {
-			this.targetAddress = address;
+		this.targetAddress = address;
 	}
 
 	getDeviceList() { return this.devices; }
 
-	powerOn(callback) {
-		this.writePWM(255, callback);
+	getState() { return this.state; }
+
+	powerOn(successCB, errorCB) {
+		this.writePWM(255, successCB, errorCB);
 	}
 
-	powerOff(callback) {
-		this.writePWM(0, callback);
+	powerOff(successCB, errorCB) {
+		this.writePWM(0, successCB, errorCB);
 	}
 
-	writePWM(pwm, callback) {
-		if (!this.isInitialized()) {
-			return;
-		}
+	writePWM(pwm, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
+			errorCB();
 			return;
 		}
 		console.log("Set pwm to " + pwm);
-		this.ble.writePWM(this.targetAddress, pwm, callback);
+		this.ble.writePWM(this.targetAddress, pwm, successCB, errorCB);
 	}
 
-	readPWM(callback) {
-		if (!this.isInitialized()) {
-			return;
-		}
+	readPWM(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
+			errorCB();
 			return;
 		}
 		console.log("Reading current PWM value");
-		this.ble.readPWM(this.targetAddress, callback);
+		this.ble.readPWM(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
-	writeMeshMessage(obj, callback) {
-		if (!this.isInitialized()) {
-			return;
-		}
+	writeMeshMessage(obj, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(meshCharacteristicUuid)) {
+			errorCB();
 			return;
 		}
 		console.log("Send mesh message: ", obj);
-		this.ble.writeMeshMessage(this.targetAddress, obj, callback)
+		this.ble.writeMeshMessage(this.targetAddress, obj, successCB, errorCB)
 	}
 
 	writeConfiguration(obj, callback) {
-		if (!this.isInitialized()) {
-			return;
-		}
 		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
 			return;
 		}
 		console.log("Set config");
 		this.ble.writeConfiguration(this.targetAddress, obj, callback);
+	}
+
+	connectAndDiscover(address, serviceUuid, characteristicUuid, successCB, errorCB) {
+		if (this.state == BleState.initialized) {
+//			var timeout = 10;
+			this.connect(
+				address,
+//				timeout,
+				function connectionSuccess() {
+					this.ble.discoverCharacteristic(
+						address,
+						serviceUuid,
+						characteristicUuid,
+						successCB,
+						function discoveryFailure(msg) {
+							console.log(msg);
+							this.disconnect();
+							errorCB(msg);
+						}
+					);
+				},
+				function connectionFailure(msg) {
+					errorCB(msg);
+				}
+			);
+		}
 	}
 }
