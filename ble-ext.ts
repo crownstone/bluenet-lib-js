@@ -71,6 +71,7 @@ class BleExt {
 	characteristics = {};
 	onConnectCallback;
 	state = BleState.uninitialized;
+	disconnectTimeout;
 	
 	// TODO: just inherit from base class
 	init(successCB, errorCB) {
@@ -137,14 +138,33 @@ class BleExt {
 		});
 	}
 
+	disconnect(successCB, errorCB) {
+		this.ble.disconnectDevice(
+			this.targetAddress,
+			function() {
+				this.onDisconnect();
+				successCB();
+			},
+			function() {
+				console.log("Assuming we are disconnected anyway");
+				errorCB();
+			});
+	}
+
 	// Called on successful connect
 	onConnect() {
 		this.state = BleState.connected;
+		if (this.disconnectTimeout != null) {
+			clearTimeout(this.disconnectTimeout);
+		}
 		if (this.onConnectCallback) this.onConnectCallback();
 	}
 
 	onDisconnect() {
 		this.state = BleState.initialized;
+		if (this.disconnectTimeout != null) {
+			clearTimeout(this.disconnectTimeout);
+		}
 		//this.targetAddress = "";
 		this.characteristics = {};
 	}
@@ -178,6 +198,13 @@ class BleExt {
 		this.ble.writePWM(this.targetAddress, pwm, successCB, errorCB);
 	}
 
+	connectAndWritePWM(address, pwm, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.writePWM(pwm, successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
+	}
+
 	readPWM(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
 			errorCB();
@@ -185,6 +212,13 @@ class BleExt {
 		}
 		console.log("Reading current PWM value");
 		this.ble.readPWM(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	connectAndReadPWM(address, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.readPWM(successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
 	}
 
 	writeMeshMessage(obj, successCB, errorCB) {
@@ -205,28 +239,90 @@ class BleExt {
 	}
 
 	connectAndDiscover(address, serviceUuid, characteristicUuid, successCB, errorCB) {
+		function connectionSuccess() {
+			if (this.characteristics.hasOwnProperty(characteristicUuid)) {
+				if (successCB) successCB();
+			}
+			else {
+				this.ble.discoverCharacteristic(
+					address,
+					serviceUuid,
+					characteristicUuid,
+					successCB,
+					function discoveryFailure(msg) {
+						console.log(msg);
+						this.disconnect();
+						if (errorCB) errorCB(msg);
+					}
+				);
+			}
+		}
+
 		if (this.state == BleState.initialized) {
 //			var timeout = 10;
 			this.connect(
 				address,
 //				timeout,
-				function connectionSuccess() {
-					this.ble.discoverCharacteristic(
-						address,
-						serviceUuid,
-						characteristicUuid,
-						successCB,
-						function discoveryFailure(msg) {
-							console.log(msg);
-							this.disconnect();
-							errorCB(msg);
-						}
-					);
-				},
+				connectionSuccess,
 				function connectionFailure(msg) {
-					errorCB(msg);
+					if (errorCB) errorCB(msg);
 				}
 			);
 		}
+		else if (this.state == BleState.connected && this.targetAddress == address) {
+			connectionSuccess();
+		}
+		else {
+			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+		}
 	}
+
+	/* Connects, discovers characteristic, executes given function, then disconnects
+	 */
+	connectExecuteAndDisconnect(address, serviceUuid, characteristicUuid, func, successCB, errorCB) {
+		// Function that has to be called when "func" is done.
+		function callback() {
+			// Delayed disconnect, such that if ConnectExecuteAndDisconnect is called again, we don't have to connect again.
+			if (this.disconnectTimeout != null) {
+				clearTimeout(this.disconnectTimeout);
+			}
+			this.disconnectTimeout = setTimeout(this.disconnect(), 1000);
+		}
+
+		// Function to be called when connected and characteristic has been discovered.
+		function discoverSuccess() {
+			func(
+				function () {
+					callback();
+					if (successCB) successCB();
+				},
+				function() {
+					callback();
+					if (errorCB) errorCB();
+				}
+			);
+		}
+
+		// And here we go..
+		this.connectAndDiscover(address, serviceUuid, characteristicUuid, discoverSuccess, errorCB);
+	}
+
+	connectAndTogglePower(address, successCB, errorCB) {
+		this.connectAndReadPWM(
+			address,
+			function(value) {
+				if (value > 0) {
+					this.connectAndWritePWM(address, 0, successCB, errorCB);
+				}
+				else {
+					this.connectAndWritePWM(address, 255, successCB, errorCB);
+				}
+			},
+			errorCB);
+	}
+
+
+
+
+
 }

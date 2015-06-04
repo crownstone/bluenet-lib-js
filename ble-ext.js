@@ -131,14 +131,29 @@ var BleExt = (function () {
             }
         });
     };
+    BleExt.prototype.disconnect = function (successCB, errorCB) {
+        this.ble.disconnectDevice(this.targetAddress, function () {
+            this.onDisconnect();
+            successCB();
+        }, function () {
+            console.log("Assuming we are disconnected anyway");
+            errorCB();
+        });
+    };
     // Called on successful connect
     BleExt.prototype.onConnect = function () {
         this.state = BleState.connected;
+        if (this.disconnectTimeout != null) {
+            clearTimeout(this.disconnectTimeout);
+        }
         if (this.onConnectCallback)
             this.onConnectCallback();
     };
     BleExt.prototype.onDisconnect = function () {
         this.state = BleState.initialized;
+        if (this.disconnectTimeout != null) {
+            clearTimeout(this.disconnectTimeout);
+        }
         //this.targetAddress = "";
         this.characteristics = {};
     };
@@ -164,6 +179,12 @@ var BleExt = (function () {
         console.log("Set pwm to " + pwm);
         this.ble.writePWM(this.targetAddress, pwm, successCB, errorCB);
     };
+    BleExt.prototype.connectAndWritePWM = function (address, pwm, successCB, errorCB) {
+        function func(successCB, errorCB) {
+            this.writePWM(pwm, successCB, errorCB);
+        }
+        this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
+    };
     BleExt.prototype.readPWM = function (successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(pwmUuid)) {
             errorCB();
@@ -171,6 +192,12 @@ var BleExt = (function () {
         }
         console.log("Reading current PWM value");
         this.ble.readPWM(this.targetAddress, successCB); //TODO: should have an errorCB
+    };
+    BleExt.prototype.connectAndReadPWM = function (address, successCB, errorCB) {
+        function func(successCB, errorCB) {
+            this.readPWM(successCB, errorCB);
+        }
+        this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
     };
     BleExt.prototype.writeMeshMessage = function (obj, successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(meshCharacteristicUuid)) {
@@ -188,20 +215,72 @@ var BleExt = (function () {
         this.ble.writeConfiguration(this.targetAddress, obj, callback);
     };
     BleExt.prototype.connectAndDiscover = function (address, serviceUuid, characteristicUuid, successCB, errorCB) {
+        function connectionSuccess() {
+            if (this.characteristics.hasOwnProperty(characteristicUuid)) {
+                if (successCB)
+                    successCB();
+            }
+            else {
+                this.ble.discoverCharacteristic(address, serviceUuid, characteristicUuid, successCB, function discoveryFailure(msg) {
+                    console.log(msg);
+                    this.disconnect();
+                    if (errorCB)
+                        errorCB(msg);
+                });
+            }
+        }
         if (this.state == BleState.initialized) {
             //			var timeout = 10;
             this.connect(address, 
             //				timeout,
-            function connectionSuccess() {
-                this.ble.discoverCharacteristic(address, serviceUuid, characteristicUuid, successCB, function discoveryFailure(msg) {
-                    console.log(msg);
-                    this.disconnect();
+            connectionSuccess, function connectionFailure(msg) {
+                if (errorCB)
                     errorCB(msg);
-                });
-            }, function connectionFailure(msg) {
-                errorCB(msg);
             });
         }
+        else if (this.state == BleState.connected && this.targetAddress == address) {
+            connectionSuccess();
+        }
+        else {
+            if (errorCB)
+                errorCB("Not in correct state to connect and not connected to " + address);
+        }
+    };
+    /* Connects, discovers characteristic, executes given function, then disconnects
+     */
+    BleExt.prototype.connectExecuteAndDisconnect = function (address, serviceUuid, characteristicUuid, func, successCB, errorCB) {
+        // Function that has to be called when "func" is done.
+        function callback() {
+            // Delayed disconnect, such that if ConnectExecuteAndDisconnect is called again, we don't have to connect again.
+            if (this.disconnectTimeout != null) {
+                clearTimeout(this.disconnectTimeout);
+            }
+            this.disconnectTimeout = setTimeout(this.disconnect(), 1000);
+        }
+        // Function to be called when connected and characteristic has been discovered.
+        function discoverSuccess() {
+            func(function () {
+                callback();
+                if (successCB)
+                    successCB();
+            }, function () {
+                callback();
+                if (errorCB)
+                    errorCB();
+            });
+        }
+        // And here we go..
+        this.connectAndDiscover(address, serviceUuid, characteristicUuid, discoverSuccess, errorCB);
+    };
+    BleExt.prototype.connectAndTogglePower = function (address, successCB, errorCB) {
+        this.connectAndReadPWM(address, function (value) {
+            if (value > 0) {
+                this.connectAndWritePWM(address, 0, successCB, errorCB);
+            }
+            else {
+                this.connectAndWritePWM(address, 255, successCB, errorCB);
+            }
+        }, errorCB);
     };
     return BleExt;
 })();
