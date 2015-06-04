@@ -1,0 +1,20 @@
+{
+  "name": "bluenet",
+  "version": "0.0.1",
+  "homepage": "https://github.com/dobots/bluenet-lib-js",
+  "description": "bluetooth le library for crownstones and dobeacons",
+  "main": "./ble.js",
+  "keywords": [
+    "bluetoothle",
+    "crownstone",
+    "dobeacon"
+  ],
+  "license": "lGPLv3",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
