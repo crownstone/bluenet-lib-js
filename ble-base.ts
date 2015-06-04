@@ -381,7 +381,7 @@ var BleBase = function() {
 				else if (obj.status == "disconnecting")
 				{
 					console.log("Disconnecting device " + obj.address);
-					if (errorCB) errorCB();
+					//if (errorCB) errorCB();
 				}
 				else
 				{
