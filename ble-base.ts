@@ -505,6 +505,7 @@ var BleBase = function() {
 			paramsObj);
 	}
 
+	// TODO: should have errorCB
 	self.readPWM = function(address, callback) {
 		console.log("Read current consumption at service " + powerServiceUuid + ' and characteristic ' + pwmUuid);
 		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": pwmUuid};
@@ -528,6 +529,7 @@ var BleBase = function() {
 			paramsObj);
 	}
 
+	// TODO: should have errorCB
 	self.readCurrentConsumption = function(address, callback) {
 		console.log("Read current consumption at service " + powerServiceUuid + ' and characteristic ' + currentConsumptionUuid);
 		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentConsumptionUuid};
@@ -551,6 +553,7 @@ var BleBase = function() {
 			paramsObj);
 	}
 
+	// TODO: should have errorCB
 	self.sampleCurrent = function(address, value, callback) {
 		var u8 = new Uint8Array(1);
 		u8[0] = value;
@@ -582,6 +585,7 @@ var BleBase = function() {
 			paramsObj);
 	}
 
+	// TODO: should have errorCB
 	self.getCurrentCurve = function(address, callback) {
 		console.log("Read current curve at service " + powerServiceUuid + ' and characteristic ' + currentCurveUuid );
 		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentCurveUuid };
@@ -693,23 +697,19 @@ var BleBase = function() {
 	/** Get a floor from the connected device
 	 */
 	self.getFloor = function(address, successCB, errorCB) {
-		var configurationType = configFloorUuid;
-		self.selectConfiguration(address, configurationType, function(msg) {
-			console.log(msg);
-			self.getConfiguration(
-				address,
-				function(configuration) {
-					if (configuration.length != 1) {
-						var msg = "Configuration value for floor level should have length 1";
-						if (errorCB) errorCB(msg);
-					} else {
-						var floor = configuration.payload[0];
-						successCB(floor);
-					}
-				},
-				errorCB
-			);
-		}, errorCB);
+		self.getConfiguration(
+			address,
+			configFloorUuid,
+			function(configuration) {
+				if (configuration.length != 1) {
+					var msg = "Configuration value for floor level should have length 1";
+					if (errorCB) errorCB(msg);
+				} else {
+					var floor = configuration.payload[0];
+					if (successCB) successCB(floor);
+				}
+			},
+			errorCB);
 	}
 
 	/* set floor to value
@@ -722,6 +722,7 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
+	// TODO: should be writeWifi()
 	/* Set Wifi SSID and password
 	 */
 	self.setWifi = function(address, value, successCB, errorCB) {
@@ -735,15 +736,31 @@ var BleBase = function() {
 
 		var configuration = {};
 		configuration.type = configWifiUuid;
-		configuration.length = value.length;
+		configuration.length = value.length; // TODO: should be u8.length?
 		configuration.payload = u8;
 		console.log("Send payload: " + u8);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
+
+	/** Select and read configuration
+	 */
+	self.getConfiguration = function(address, configurationType, successCB, errorCB) {
+		self.selectConfiguration(
+			address,
+			configurationType,
+			function() {
+				self.readConfiguration(address, successCB, errorCB);
+			},
+			errorCB
+			);
+	}
+
+
+
 	/** Get a specific configuration, selected before in selectConfiguration
 	 */
-	self.getConfiguration = function(address, successCB, errorCB) {
+	self.readConfiguration = function(address, successCB, errorCB) {
 		console.log("Get configuration at service " + generalServiceUuid +
 				' and characteristic ' + getConfigurationCharacteristicUuid );
 		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,

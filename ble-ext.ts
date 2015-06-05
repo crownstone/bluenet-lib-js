@@ -1,3 +1,7 @@
+// TODO: discover services
+// TODO: sort ascending / descending
+
+
 declare var BleBase;
 
 enum BleState {
@@ -66,8 +70,6 @@ class BleExt {
 	ble = new BleBase();
 	devices = new BleDeviceList();
 	targetAddress : string;
-//	closestRssi = -128;
-//	closestAddress = "";
 	characteristics = {};
 	onConnectCallback;
 	state = BleState.uninitialized;
@@ -151,6 +153,16 @@ class BleExt {
 			});
 	}
 
+	discoverCharacteristics(successCB, errorCB) {
+		this.ble.discoverServices(
+			this.targetAddress,
+			function(serviceUuid, characteristicUuid) {
+				this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+				if (successCB) successCB(serviceUuid, characteristicUuid);
+			},
+			errorCB);
+	}
+
 	// Called on successful connect
 	onConnect() {
 		this.state = BleState.connected;
@@ -169,6 +181,10 @@ class BleExt {
 		this.characteristics = {};
 	}
 
+	onCharacteristicDiscover(serviceUuid, characteristicUuid) {
+		this.characteristics[characteristicUuid] = true;
+	}
+
 	setConnectListener(func) {
 		this.onConnectCallback = func;
 	}
@@ -180,6 +196,11 @@ class BleExt {
 	getDeviceList() { return this.devices; }
 
 	getState() { return this.state; }
+
+
+
+
+
 
 	powerOn(successCB, errorCB) {
 		this.writePWM(255, successCB, errorCB);
@@ -230,13 +251,155 @@ class BleExt {
 		this.ble.writeMeshMessage(this.targetAddress, obj, successCB, errorCB)
 	}
 
-	writeConfiguration(obj, callback) {
+	writeConfiguration(obj, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
 			return;
 		}
 		console.log("Set config");
-		this.ble.writeConfiguration(this.targetAddress, obj, callback);
+		this.ble.writeConfiguration(this.targetAddress, obj, successCB, errorCB);
 	}
+
+	connectAndWriteConfiguration(address, config, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.writeConfiguration(config, successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
+	}
+
+	readConfiguration(configurationType, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) ||
+			!this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.getConfiguration(this.targetAddress, configurationType, successCB, errorCB);
+	}
+
+	// TODO writeWifi etc, should be replaced with a function to convert wifi object to a config object and then call writeConfiguration
+
+	// TODO: value should be an object with ssid and pw
+	writeWifi(value, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		console.log("Set wifi to " + value);
+		this.ble.setWifi(this.targetAddress, value, successCB, errorCB);
+	}
+
+	// TODO: value should be an object with ssid and pw
+	connectAndWriteWifi(address, value, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.writeWifi(value, successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
+	}
+
+	readIp(successCB, errorCB) {
+		this.readConfiguration(configWifiUuid, successCB, errorCB);
+	}
+
+	// TODO: should we also discover selectConfigurationCharacteristicUuid ? Seems like we're just lucky now.
+	connectAndReadIp(address, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.readIp(successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, generalServiceUuid, getConfigurationCharacteristicUuid, func, successCB, errorCB);
+	}
+
+	readTrackedDevices(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(addTrackedDeviceUuid)) {
+			errorCB();
+			return;
+		}
+		console.log("TODO");
+	}
+
+	readCurrentConsumption(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
+			!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
+			errorCB();
+			return;
+		}
+
+		this.ble.sampleCurrent(
+			this.targetAddress,
+			0x01,
+			function() {
+
+			}); // TODO: should have an errorCB
+	}
+
+	readTemperature(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(temperatureCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.readTemperature(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	readCurrentConsumption(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.readCurrentConsumption(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	readDeviceName(successCB, errorCB) {
+		console.log("TODO");
+		//this.readConfiguration(configNameUuid, successCB, errorCB);
+	}
+
+	writeDeviceName(value, successCB, errorCB) {
+		console.log("TODO");
+	}
+
+	readDeviceType(successCB, errorCB) {
+		console.log("TODO");
+		//this.readConfiguration(configNameUuid, successCB, errorCB);
+	}
+
+	writeDeviceType(value, successCB, errorCB) {
+		console.log("TODO");
+	}
+
+	readFloor(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) ||
+			!this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.getFloor(this.targetAddress, successCB, errorCB);
+	}
+
+	writeFloor(value, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.setFloor(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readRoom(successCB, errorCB) {
+		console.log("TODO");
+		//this.readConfiguration(configNameUuid, successCB, errorCB);
+	}
+
+	writeRoom(value, successCB, errorCB) {
+		console.log("TODO");
+	}
+
+
+
 
 	connectAndDiscover(address, serviceUuid, characteristicUuid, successCB, errorCB) {
 		function connectionSuccess() {
@@ -248,7 +411,10 @@ class BleExt {
 					address,
 					serviceUuid,
 					characteristicUuid,
-					successCB,
+					function(serviceUuid, characteristicUuid) {
+						this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+						if (successCB) successCB();
+					},
 					function discoveryFailure(msg) {
 						console.log(msg);
 						this.disconnect();
