@@ -197,10 +197,114 @@ class BleExt {
 
 	getState() { return this.state; }
 
+	connectAndDiscoverAll(address, successCB, errorCB) {
+		function connectionSuccess() {
+			this.ble.discoverServices(
+				address,
+				function(serviceUuid, characteristicUuid) {
+					this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+					if (successCB) successCB();
+				},
+				function discoveryFailure(msg) {
+					console.log(msg);
+					this.disconnect();
+					if (errorCB) errorCB(msg);
+				}
+			);
+		}
+
+		if (this.state == BleState.initialized) {
+//			var timeout = 10;
+			this.connect(
+				address,
+//				timeout,
+				connectionSuccess,
+				errorCB
+			);
+		}
+		else if (this.state == BleState.connected && this.targetAddress == address) {
+			connectionSuccess();
+		}
+		else {
+			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+		}
+	}
+
+	connectAndDiscoverChar(address, serviceUuid, characteristicUuid, successCB, errorCB) {
+		function connectionSuccess() {
+			if (this.characteristics.hasOwnProperty(characteristicUuid)) {
+				if (successCB) successCB();
+			}
+			else {
+				this.ble.discoverCharacteristic(
+					address,
+					serviceUuid,
+					characteristicUuid,
+					function(serviceUuid, characteristicUuid) {
+						this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+						if (successCB) successCB();
+					},
+					function discoveryFailure(msg) {
+						console.log(msg);
+						this.disconnect();
+						if (errorCB) errorCB(msg);
+					}
+				);
+			}
+		}
+
+		if (this.state == BleState.initialized) {
+//			var timeout = 10;
+			this.connect(
+				address,
+//				timeout,
+				connectionSuccess,
+				errorCB
+			);
+		}
+		else if (this.state == BleState.connected && this.targetAddress == address) {
+			connectionSuccess();
+		}
+		else {
+			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+		}
+	}
+
+	/* Connects, discovers characteristic, executes given function, then disconnects
+	 */
+	connectExecuteAndDisconnect(address, serviceUuid, characteristicUuid, func, successCB, errorCB) {
+		// Function that has to be called when "func" is done.
+		function callback() {
+			// Delayed disconnect, such that if ConnectExecuteAndDisconnect is called again, we don't have to connect again.
+			if (this.disconnectTimeout != null) {
+				clearTimeout(this.disconnectTimeout);
+			}
+			this.disconnectTimeout = setTimeout(this.disconnect(), 1000);
+		}
+
+		// Function to be called when connected and characteristic has been discovered.
+		function discoverSuccess() {
+			func(
+				function () {
+					callback();
+					if (successCB) successCB();
+				},
+				function() {
+					callback();
+					if (errorCB) errorCB();
+				}
+			);
+		}
+
+		// And here we go..
+		this.connectAndDiscoverChar(address, serviceUuid, characteristicUuid, discoverSuccess, errorCB);
+	}
 
 
 
-
+	///////////////////
+	// Power service //
+	///////////////////
 
 	powerOn(successCB, errorCB) {
 		this.writePWM(255, successCB, errorCB);
@@ -242,6 +346,78 @@ class BleExt {
 		this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
 	}
 
+	connectAndTogglePower(address, successCB, errorCB) {
+		this.connectAndReadPWM(
+			address,
+			function(value) {
+				if (value > 0) {
+					this.connectAndWritePWM(address, 0, successCB, errorCB);
+				}
+				else {
+					this.connectAndWritePWM(address, 255, successCB, errorCB);
+				}
+			},
+			errorCB);
+	}
+
+	readCurrentConsumption(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
+			!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.sampleCurrent(
+			this.targetAddress,
+			0x01,
+			function() {
+				this.ble.readCurrentConsumption(this.targetAddress, successCB); //TODO: should have an errorCB
+			}); // TODO: should have an errorCB
+	}
+
+	readCurrentCurve(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
+			!this.characteristics.hasOwnProperty(currentCurveUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.sampleCurrent(
+			this.targetAddress,
+			0x02,
+			function() {
+				this.ble.getCurrentCurve(this.targetAddress, successCB); //TODO: should have an errorCB
+			}); // TODO: should have an errorCB
+	}
+
+	writeCurrentLimit(value, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(currentLimitUuid)) {
+			errorCB();
+			return;
+		}
+		console.log("TODO");
+		//this.ble.writeCurrentLimit(this.targetAddress, value)
+	}
+
+	readCurrentLimit(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(currentLimitUuid)) {
+			errorCB();
+			return;
+		}
+		console.log("TODO");
+		this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	/////////////////////
+	// General service //
+	/////////////////////
+
+	readTemperature(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(temperatureCharacteristicUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.readTemperature(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
 	writeMeshMessage(obj, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(meshCharacteristicUuid)) {
 			errorCB();
@@ -275,84 +451,7 @@ class BleExt {
 		this.ble.getConfiguration(this.targetAddress, configurationType, successCB, errorCB);
 	}
 
-	// TODO writeWifi etc, should be replaced with a function to convert wifi object to a config object and then call writeConfiguration
-
-	// TODO: value should be an object with ssid and pw
-	writeWifi(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
-			errorCB();
-			return;
-		}
-		console.log("Set wifi to " + value);
-		this.ble.setWifi(this.targetAddress, value, successCB, errorCB);
-	}
-
-	// TODO: value should be an object with ssid and pw
-	connectAndWriteWifi(address, value, successCB, errorCB) {
-		function func(successCB, errorCB) {
-			this.writeWifi(value, successCB, errorCB);
-		}
-		this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
-	}
-
-	readIp(successCB, errorCB) {
-		this.readConfiguration(configWifiUuid, successCB, errorCB);
-	}
-
-	// TODO: should we also discover selectConfigurationCharacteristicUuid ? Seems like we're just lucky now.
-	connectAndReadIp(address, successCB, errorCB) {
-		function func(successCB, errorCB) {
-			this.readIp(successCB, errorCB);
-		}
-		this.connectExecuteAndDisconnect(address, generalServiceUuid, getConfigurationCharacteristicUuid, func, successCB, errorCB);
-	}
-
-	readTrackedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
-			errorCB();
-			return;
-		}
-		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
-	}
-
-	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(addTrackedDeviceUuid)) {
-			errorCB();
-			return;
-		}
-		console.log("TODO");
-	}
-
-	readCurrentConsumption(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
-			!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
-			errorCB();
-			return;
-		}
-
-		this.ble.sampleCurrent(
-			this.targetAddress,
-			0x01,
-			function() {
-
-			}); // TODO: should have an errorCB
-	}
-
-	readTemperature(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(temperatureCharacteristicUuid)) {
-			errorCB();
-			return;
-		}
-		this.ble.readTemperature(this.targetAddress, successCB); //TODO: should have an errorCB
-	}
-
-	readCurrentConsumption(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
-			errorCB();
-			return;
-		}
-		this.ble.readCurrentConsumption(this.targetAddress, successCB); //TODO: should have an errorCB
-	}
+	// TODO writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
 
 	readDeviceName(successCB, errorCB) {
 		console.log("TODO");
@@ -398,97 +497,92 @@ class BleExt {
 		console.log("TODO");
 	}
 
-
-
-
-	connectAndDiscover(address, serviceUuid, characteristicUuid, successCB, errorCB) {
-		function connectionSuccess() {
-			if (this.characteristics.hasOwnProperty(characteristicUuid)) {
-				if (successCB) successCB();
-			}
-			else {
-				this.ble.discoverCharacteristic(
-					address,
-					serviceUuid,
-					characteristicUuid,
-					function(serviceUuid, characteristicUuid) {
-						this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-						if (successCB) successCB();
-					},
-					function discoveryFailure(msg) {
-						console.log(msg);
-						this.disconnect();
-						if (errorCB) errorCB(msg);
-					}
-				);
-			}
+	// TODO: value should be an object with ssid and pw
+	writeWifi(value, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
+			errorCB();
+			return;
 		}
-
-		if (this.state == BleState.initialized) {
-//			var timeout = 10;
-			this.connect(
-				address,
-//				timeout,
-				connectionSuccess,
-				function connectionFailure(msg) {
-					if (errorCB) errorCB(msg);
-				}
-			);
-		}
-		else if (this.state == BleState.connected && this.targetAddress == address) {
-			connectionSuccess();
-		}
-		else {
-			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
-		}
+		console.log("Set wifi to " + value);
+		this.ble.setWifi(this.targetAddress, value, successCB, errorCB);
 	}
 
-	/* Connects, discovers characteristic, executes given function, then disconnects
+	// TODO: value should be an object with ssid and pw
+	connectAndWriteWifi(address, value, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.writeWifi(value, successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
+	}
+
+	readIp(successCB, errorCB) {
+		this.readConfiguration(configWifiUuid, successCB, errorCB);
+	}
+
+	// TODO: should we also discover selectConfigurationCharacteristicUuid ? Seems like we're just lucky now.
+	connectAndReadIp(address, successCB, errorCB) {
+		function func(successCB, errorCB) {
+			this.readIp(successCB, errorCB);
+		}
+		this.connectExecuteAndDisconnect(address, generalServiceUuid, getConfigurationCharacteristicUuid, func, successCB, errorCB);
+	}
+
+	//////////////////////////
+	// Localization service //
+	//////////////////////////
+
+	readTrackedDevices(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(addTrackedDeviceUuid)) {
+			errorCB();
+			return;
+		}
+		console.log("TODO");
+	}
+
+	readScannedDevices(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	writeScanDevices(scan : boolean, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(deviceScanUuid)) {
+			errorCB();
+			return;
+		}
+		this.ble.scanDevices(this.targetAddress, scan); //TODO: needs callbacks
+		if (successCB) setTimeout(successCB(), 1000);
+	}
+
+	/* Makes the crownstone scan for other devices and report the result
 	 */
-	connectExecuteAndDisconnect(address, serviceUuid, characteristicUuid, func, successCB, errorCB) {
-		// Function that has to be called when "func" is done.
-		function callback() {
-			// Delayed disconnect, such that if ConnectExecuteAndDisconnect is called again, we don't have to connect again.
-			if (this.disconnectTimeout != null) {
-				clearTimeout(this.disconnectTimeout);
-			}
-			this.disconnectTimeout = setTimeout(this.disconnect(), 1000);
-		}
-
-		// Function to be called when connected and characteristic has been discovered.
-		function discoverSuccess() {
-			func(
-				function () {
-					callback();
-					if (successCB) successCB();
-				},
-				function() {
-					callback();
-					if (errorCB) errorCB();
-				}
-			);
-		}
-
-		// And here we go..
-		this.connectAndDiscover(address, serviceUuid, characteristicUuid, discoverSuccess, errorCB);
-	}
-
-	connectAndTogglePower(address, successCB, errorCB) {
-		this.connectAndReadPWM(
-			address,
-			function(value) {
-				if (value > 0) {
-					this.connectAndWritePWM(address, 0, successCB, errorCB);
-				}
-				else {
-					this.connectAndWritePWM(address, 255, successCB, errorCB);
-				}
+	scanForDevices(successCB, errorCB) {
+		// Enable scanning
+		this.writeScanDevices(
+			true,
+			function() {
+				setTimeout(stopScanAndReadResult, 10000);
 			},
 			errorCB);
+
+		// Stop scanning and read result
+		function stopScanAndReadResult() {
+			this.writeScanDevices(
+				false,
+				this.readScannedDevices(successCB, errorCB),
+				errorCB
+			);
+		}
 	}
-
-
-
-
 
 }
