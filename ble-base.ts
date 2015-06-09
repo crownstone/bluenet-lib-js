@@ -223,36 +223,37 @@ var BleBase = function() {
 	 * Discovery must be run before any of the getters/setters can be used. Or else "Service not found" errors
 	 * will be generated.
 	 */
-	self.discoverServices = function(address, callback, errorCB) {
+	self.discoverServices = function(address, callback, successCB, errorCB) {
 		console.log("Beginning discovery of services for device" + address);
 		var paramsObj = {address: address};
 		bluetoothle.discover(function(obj) { // discover success
-				if (obj.status == "discovered")
-				{
+				if (obj.status == "discovered") {
 					console.log("Discovery completed");
-					var services = obj.services;
-					for (var i = 0; i < services.length; ++i) {
-						var serviceUuid = services[i].serviceUuid;
-						var characteristics = services[i].characteristics;
-						for (var j = 0; j < characteristics.length; ++j) {
-							var characteristicUuid = characteristics[j].characteristicUuid;
-							console.log("Found service " + serviceUuid + " with characteristic " + characteristicUuid);
+					if (callback) {
+						var services = obj.services;
+						for (var i = 0; i < services.length; ++i) {
+							var serviceUuid = services[i].serviceUuid;
+							var characteristics = services[i].characteristics;
+							for (var j = 0; j < characteristics.length; ++j) {
+								var characteristicUuid = characteristics[j].characteristicUuid;
+								console.log("Found service " + serviceUuid + " with characteristic " + characteristicUuid);
 
-							if (callback) {
-								callback(serviceUuid, characteristicUuid);
+								if (callback) {
+									callback(serviceUuid, characteristicUuid);
+								}
 							}
 						}
 					}
+					if (successCB) successCB(obj);
 				}
-				else
-				{
+				else {
 					var msg = "Unexpected discover status: " + obj.status;
-					errorCB(msg);
+					if (errorCB) errorCB(msg);
 				}
 			},
 			function(obj) { // discover error
 				var msg = "Discover error: " + obj.error + " - " + obj.message;
-				errorCB(msg);
+				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
 	}
@@ -706,6 +707,7 @@ var BleBase = function() {
 					if (errorCB) errorCB(msg);
 				} else {
 					var floor = configuration.payload[0];
+					console.log("Floor is set to: " + floor);
 					if (successCB) successCB(floor);
 				}
 			},
@@ -761,26 +763,27 @@ var BleBase = function() {
 	/** Get a specific configuration, selected before in selectConfiguration
 	 */
 	self.readConfiguration = function(address, successCB, errorCB) {
-		console.log("Get configuration at service " + generalServiceUuid +
+		console.log("Read configuration at service " + generalServiceUuid +
 				' and characteristic ' + getConfigurationCharacteristicUuid );
 		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
 			"characteristicUuid": getConfigurationCharacteristicUuid};
-		bluetoothle.read(function(obj) { // read success
-				if (obj.status == "read")
-				{
+		bluetoothle.read(
+			function(obj) { // read success
+				if (obj.status == "read") {
 					var bytearray = bluetoothle.encodedStringToBytes(obj.value);
-					var str = bluetoothle.bytesToString(bytearray);
+					//for (var i=0; i<5; i++) {
+					//	console.log("read config: " + bytearray[i]);
+					//}
 					var configuration = {};
 					configuration.type = bytearray[0];
-					configuration.length = bytearray[1];
+					configuration.length = (bytearray[3] << 8) + bytearray[2];
 					configuration.payload = new ArrayBuffer(configuration.length);
 					for (var i = 0; i < configuration.length; i++) {
-						configuration.payload[i] = bytearray[i+2];
+						configuration.payload[i] = bytearray[i+4];
 					}
-					successCB(configuration);
+					if (successCB) successCB(configuration);
 				}
-				else
-				{
+				else {
 					var msg = "Unexpected read status: " + obj.status;
 					console.log(msg);
 					if (errorCB) errorCB();
