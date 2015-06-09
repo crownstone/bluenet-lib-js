@@ -79,33 +79,16 @@ var BleExt = (function () {
                 if (errorCB)
                     errorCB();
             }
-        });
+        }.bind(this));
     };
     BleExt.prototype.startScan = function (scanCB) {
         this.state = BleState.scanning;
         this.ble.startEndlessScan(function (obj) {
-            //var index;
-            //if (this.devices.some(function(el, ind) { if (el.address == obj.address) { index = ind; return true; } })) {
-            //	this.devices[index] =
-            //}
             this.devices.updateDevice(new BleDevice(obj));
             this.devices.sort();
-            //// Add device to list
-            //if (!this.devices.hasOwnProperty(obj.address)) {
-            //	this.devices[obj.address] = {'name': obj.name, 'rssi': obj.rssi};
-            //} else {
-            //	this.devices[obj.address]['rssi'] = obj.rssi;
-            //}
-            //
-            //// Check if this is the closest device
-            //if (obj.rssi > this.closestRssi) {
-            //	this.closestRssi = obj.rssi;
-            //	this.closestAddress = obj.address;
-            //}
             if (scanCB)
                 scanCB(obj);
-        });
-        //		}.bind(this));
+        }.bind(this));
     };
     // TODO: just inherit from base class
     BleExt.prototype.stopScan = function (successCB, errorCB) {
@@ -115,13 +98,15 @@ var BleExt = (function () {
             successCB();
     };
     BleExt.prototype.connect = function (address, successCB, errorCB) {
+        console.log("Connect");
+        var self = this;
         if (address) {
             this.setTarget(address);
         }
         this.state = BleState.connecting;
         this.ble.connectDevice(this.targetAddress, 5, function (success) {
             if (success) {
-                this.onConnect();
+                self.onConnect();
                 if (successCB)
                     successCB();
             }
@@ -132,23 +117,28 @@ var BleExt = (function () {
         });
     };
     BleExt.prototype.disconnect = function (successCB, errorCB) {
+        console.log("Disconnect");
+        var self = this;
         this.ble.disconnectDevice(this.targetAddress, function () {
-            this.onDisconnect();
-            successCB();
+            self.onDisconnect();
+            if (successCB)
+                successCB();
         }, function () {
             console.log("Assuming we are disconnected anyway");
-            errorCB();
+            if (errorCB)
+                errorCB();
         });
     };
-    BleExt.prototype.discoverCharacteristics = function (successCB, errorCB) {
+    BleExt.prototype.discoverServices = function (characteristicCB, successCB, errorCB) {
         this.ble.discoverServices(this.targetAddress, function (serviceUuid, characteristicUuid) {
             this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-            if (successCB)
-                successCB(serviceUuid, characteristicUuid);
-        }, errorCB);
+            if (characteristicCB)
+                characteristicCB(serviceUuid, characteristicUuid);
+        }.bind(this), successCB, errorCB);
     };
     // Called on successful connect
     BleExt.prototype.onConnect = function () {
+        console.log("onConnect");
         this.state = BleState.connected;
         if (this.disconnectTimeout != null) {
             clearTimeout(this.disconnectTimeout);
@@ -157,6 +147,7 @@ var BleExt = (function () {
             this.onConnectCallback();
     };
     BleExt.prototype.onDisconnect = function () {
+        console.log("onDisconnect");
         this.state = BleState.initialized;
         if (this.disconnectTimeout != null) {
             clearTimeout(this.disconnectTimeout);
@@ -165,6 +156,7 @@ var BleExt = (function () {
         this.characteristics = {};
     };
     BleExt.prototype.onCharacteristicDiscover = function (serviceUuid, characteristicUuid) {
+        console.log("Discovered characteristic: " + characteristicUuid);
         this.characteristics[characteristicUuid] = true;
     };
     BleExt.prototype.setConnectListener = function (func) {
@@ -175,57 +167,35 @@ var BleExt = (function () {
     };
     BleExt.prototype.getDeviceList = function () { return this.devices; };
     BleExt.prototype.getState = function () { return this.state; };
-    BleExt.prototype.connectAndDiscoverAll = function (address, successCB, errorCB) {
-        function connectionSuccess() {
-            this.ble.discoverServices(address, function (serviceUuid, characteristicUuid) {
-                this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+    BleExt.prototype.connectAndDiscover = function (address, characteristicCB, successCB, errorCB) {
+        var connectionSuccess = function () {
+            this.ble.discoverServices(address, null, function (obj) {
+                var services = obj.services;
+                for (var i = 0; i < services.length; ++i) {
+                    var serviceUuid = services[i].serviceUuid;
+                    var characteristics = services[i].characteristics;
+                    for (var j = 0; j < characteristics.length; ++j) {
+                        var characteristicUuid = characteristics[j].characteristicUuid;
+                        this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+                        if (characteristicCB) {
+                            characteristicCB(serviceUuid, characteristicUuid);
+                        }
+                    }
+                }
                 if (successCB)
                     successCB();
-            }, function discoveryFailure(msg) {
+            }.bind(this), function (msg) {
                 console.log(msg);
                 this.disconnect();
                 if (errorCB)
                     errorCB(msg);
-            });
-        }
+            }.bind(this));
+        };
         if (this.state == BleState.initialized) {
             //			var timeout = 10;
             this.connect(address, 
             //				timeout,
-            connectionSuccess, errorCB);
-        }
-        else if (this.state == BleState.connected && this.targetAddress == address) {
-            connectionSuccess();
-        }
-        else {
-            if (errorCB)
-                errorCB("Not in correct state to connect and not connected to " + address);
-        }
-    };
-    BleExt.prototype.connectAndDiscoverChar = function (address, serviceUuid, characteristicUuid, successCB, errorCB) {
-        function connectionSuccess() {
-            if (this.characteristics.hasOwnProperty(characteristicUuid)) {
-                if (successCB)
-                    successCB();
-            }
-            else {
-                this.ble.discoverCharacteristic(address, serviceUuid, characteristicUuid, function (serviceUuid, characteristicUuid) {
-                    this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-                    if (successCB)
-                        successCB();
-                }, function discoveryFailure(msg) {
-                    console.log(msg);
-                    this.disconnect();
-                    if (errorCB)
-                        errorCB(msg);
-                });
-            }
-        }
-        if (this.state == BleState.initialized) {
-            //			var timeout = 10;
-            this.connect(address, 
-            //				timeout,
-            connectionSuccess, errorCB);
+            connectionSuccess.bind(this), errorCB);
         }
         else if (this.state == BleState.connected && this.targetAddress == address) {
             connectionSuccess();
@@ -237,17 +207,18 @@ var BleExt = (function () {
     };
     /* Connects, discovers characteristic, executes given function, then disconnects
      */
-    BleExt.prototype.connectExecuteAndDisconnect = function (address, serviceUuid, characteristicUuid, func, successCB, errorCB) {
+    BleExt.prototype.connectExecuteAndDisconnect = function (address, func, successCB, errorCB) {
+        var self = this;
         // Function that has to be called when "func" is done.
-        function callback() {
+        var callback = function () {
             // Delayed disconnect, such that if ConnectExecuteAndDisconnect is called again, we don't have to connect again.
-            if (this.disconnectTimeout != null) {
-                clearTimeout(this.disconnectTimeout);
+            if (self.disconnectTimeout != null) {
+                clearTimeout(self.disconnectTimeout);
             }
-            this.disconnectTimeout = setTimeout(this.disconnect(), 1000);
-        }
+            self.disconnectTimeout = setTimeout(self.disconnect.bind(self), 1000);
+        };
         // Function to be called when connected and characteristic has been discovered.
-        function discoverSuccess() {
+        var discoverSuccess = function () {
             func(function () {
                 callback();
                 if (successCB)
@@ -257,9 +228,9 @@ var BleExt = (function () {
                 if (errorCB)
                     errorCB();
             });
-        }
+        };
         // And here we go..
-        this.connectAndDiscoverChar(address, serviceUuid, characteristicUuid, discoverSuccess, errorCB);
+        this.connectAndDiscover(address, null, discoverSuccess, errorCB);
     };
     ///////////////////
     // Power service //
@@ -282,7 +253,7 @@ var BleExt = (function () {
         function func(successCB, errorCB) {
             this.writePWM(pwm, successCB, errorCB);
         }
-        this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readPWM = function (successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(pwmUuid)) {
@@ -296,7 +267,7 @@ var BleExt = (function () {
         function func(successCB, errorCB) {
             this.readPWM(successCB, errorCB);
         }
-        this.connectExecuteAndDisconnect(address, powerServiceUuid, pwmUuid, func, successCB, errorCB);
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.connectAndTogglePower = function (address, successCB, errorCB) {
         this.connectAndReadPWM(address, function (value) {
@@ -373,11 +344,12 @@ var BleExt = (function () {
         function func(successCB, errorCB) {
             this.writeConfiguration(config, successCB, errorCB);
         }
-        this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readConfiguration = function (configurationType, successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) ||
             !this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid)) {
+            console.log("Missing characteristic UUID");
             errorCB();
             return;
         }
@@ -431,20 +403,26 @@ var BleExt = (function () {
     };
     // TODO: value should be an object with ssid and pw
     BleExt.prototype.connectAndWriteWifi = function (address, value, successCB, errorCB) {
+        //function func(successCB, errorCB) {
+        //	this.writeWifi(value, successCB, errorCB);
+        //}
+        //this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func.bind(this), successCB, errorCB);
+        var self = this;
         function func(successCB, errorCB) {
-            this.writeWifi(value, successCB, errorCB);
+            self.writeWifi(value, successCB, errorCB);
         }
-        this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func, successCB, errorCB);
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readIp = function (successCB, errorCB) {
         this.readConfiguration(configWifiUuid, successCB, errorCB);
     };
     // TODO: should we also discover selectConfigurationCharacteristicUuid ? Seems like we're just lucky now.
     BleExt.prototype.connectAndReadIp = function (address, successCB, errorCB) {
+        var self = this;
         function func(successCB, errorCB) {
-            this.readIp(successCB, errorCB);
+            self.readIp(successCB, errorCB);
         }
-        this.connectExecuteAndDisconnect(address, generalServiceUuid, getConfigurationCharacteristicUuid, func, successCB, errorCB);
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     //////////////////////////
     // Localization service //
@@ -484,12 +462,12 @@ var BleExt = (function () {
     BleExt.prototype.scanForDevices = function (successCB, errorCB) {
         // Enable scanning
         this.writeScanDevices(true, function () {
-            setTimeout(stopScanAndReadResult, 10000);
+            setTimeout(stopScanAndReadResult.bind(this), 10000);
         }, errorCB);
         // Stop scanning and read result
-        function stopScanAndReadResult() {
+        var stopScanAndReadResult = function () {
             this.writeScanDevices(false, this.readScannedDevices(successCB, errorCB), errorCB);
-        }
+        };
     };
     return BleExt;
 })();
