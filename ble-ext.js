@@ -8,6 +8,13 @@ var BleState;
     BleState[BleState["connecting"] = 3] = "connecting";
     BleState[BleState["connected"] = 4] = "connected";
 })(BleState || (BleState = {}));
+var BleFilter;
+(function (BleFilter) {
+    BleFilter[BleFilter["none"] = 0] = "none";
+    BleFilter[BleFilter["crownstone"] = 1] = "crownstone";
+    BleFilter[BleFilter["doBeacon"] = 2] = "doBeacon";
+    BleFilter[BleFilter["iBeacon"] = 3] = "iBeacon";
+})(BleFilter || (BleFilter = {}));
 var BleDevice = (function () {
     function BleDevice(obj) {
         this.address = "";
@@ -42,6 +49,9 @@ var BleDeviceList = (function () {
     //		this.devices.push(obj);
     //	}
     //}
+    BleDeviceList.prototype.clear = function () {
+        this.devices = [];
+    };
     // TODO: keep up average rssi
     BleDeviceList.prototype.updateDevice = function (device) {
         var dev = this.getDevice(device.address);
@@ -82,9 +92,43 @@ var BleExt = (function () {
             }
         }.bind(this));
     };
+    /*
+     * Filter scanned devices.
+     */
+    BleExt.prototype.setScanFilter = function (filter) {
+        //if (!Array.isArray(filter)) {
+        //	console.log("Must supply an array!");
+        //	return;
+        //}
+        this.scanFilter = filter;
+    };
     BleExt.prototype.startScan = function (scanCB, errorCB) {
+        if (this.state !== BleState.initialized) {
+            console.log("State must be \"initialized\"");
+            return;
+        }
+        this.devices.clear();
         this.state = BleState.scanning;
         this.ble.startEndlessScan(function (obj) {
+            if (this.scanFilter.length > 0) {
+                //var pass = false;
+                //for (var i=0; i<this.scanFilter.length; i++) {
+                //	if ((this.scanFilter[i] == BleFilter.crownstone && obj.isCrownstone) ||
+                //		(this.scanFilter[i] == BleFilter.doBeacon && obj.isIBeacon) ||
+                //		(this.scanFilter[i] == BleFilter.iBeacon && obj.isIBeacon)) {
+                //		pass = true;
+                //		break;
+                //	}
+                //}
+                //if (!pass) {
+                //	return;
+                //}
+                if ((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
+                    (this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
+                    (this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon)) {
+                    return;
+                }
+            }
             this.devices.updateDevice(new BleDevice(obj));
             this.devices.sort();
             if (scanCB)

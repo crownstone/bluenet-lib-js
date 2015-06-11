@@ -71,7 +71,7 @@ var byteArrayTohexString = function(value) {
 var hexStringToBluetoothAddress = function(value) {
 	var arrInv = hexStringToByteArray(value);
 	if (arrInv.length != 6) {
-		return [];
+		return new Uint8Array(0);
 	}
 	var arr = new Uint8Array(6);
 	for (var i=0; i<6; i++) {

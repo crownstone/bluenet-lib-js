@@ -1,15 +1,4 @@
 /*
- * Expand functionality of standard tyopes
- */
-
-String.prototype.insert = function (index, string) {
-    if (index > 0)
-        return this.substring(0, index) + string + this.substring(index, this.length);
-    else
-        return string + this;
-};
-
-/*
  * Conversions between uint8 array and uint16 or uint32
  */
 var uint16ToByteArray = function (value) {
@@ -27,13 +16,11 @@ var uint32ToByteArray = function (value) {
     return u8;
 };
 var byteArrayToUint32 = function (u8, startIndex) {
-    return (u8[startIndex+3] << 24) + (u8[startIndex+2] << 16) + (u8[startIndex+1] << 8) + u8[startIndex];
+    return (u8[startIndex + 3] << 24) + (u8[startIndex + 2] << 16) + (u8[startIndex + 1] << 8) + u8[startIndex];
 };
 var byteArrayToUint16 = function (u8, startIndex) {
-    return (u8[startIndex+1] << 8) + u8[startIndex];
+    return (u8[startIndex + 1] << 8) + u8[startIndex];
 };
-
-
 /*
  * Conversions between uint8 array and strings
  */
@@ -70,7 +57,7 @@ var byteArrayTohexString = function (value) {
 var hexStringToBluetoothAddress = function (value) {
     var arrInv = hexStringToByteArray(value);
     if (arrInv.length != 6) {
-        return [];
+        return new Uint8Array(0);
     }
     var arr = new Uint8Array(6);
     for (var i = 0; i < 6; i++) {
