@@ -42,6 +42,7 @@ var BleDeviceList = (function () {
     //		this.devices.push(obj);
     //	}
     //}
+    // TODO: keep up average rssi
     BleDeviceList.prototype.updateDevice = function (device) {
         var dev = this.getDevice(device.address);
         if (dev) {
@@ -81,7 +82,7 @@ var BleExt = (function () {
             }
         }.bind(this));
     };
-    BleExt.prototype.startScan = function (scanCB) {
+    BleExt.prototype.startScan = function (scanCB, errorCB) {
         this.state = BleState.scanning;
         this.ble.startEndlessScan(function (obj) {
             this.devices.updateDevice(new BleDevice(obj));
@@ -219,14 +220,18 @@ var BleExt = (function () {
         };
         // Function to be called when connected and characteristic has been discovered.
         var discoverSuccess = function () {
-            func(function () {
+            func(
+            // TODO: variable number of orguments: use "arguments.length" and successCB.apply(successCB, args)
+            // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
+            // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
+            function (arg) {
                 callback();
                 if (successCB)
-                    successCB();
-            }, function () {
+                    successCB(arg);
+            }, function (arg) {
                 callback();
                 if (errorCB)
-                    errorCB();
+                    errorCB(arg);
             });
         };
         // And here we go..
@@ -235,6 +240,18 @@ var BleExt = (function () {
     ///////////////////
     // Power service //
     ///////////////////
+    // TODO: keep up PWM value and use it
+    BleExt.prototype.togglePower = function (successCB, errorCB) {
+        console.log("Toggle power");
+        this.readPWM(function (value) {
+            if (value > 0) {
+                this.writePWM(0, successCB, errorCB);
+            }
+            else {
+                this.writePWM(255, successCB, errorCB);
+            }
+        }.bind(this), errorCB);
+    };
     BleExt.prototype.powerOn = function (successCB, errorCB) {
         this.writePWM(255, successCB, errorCB);
     };
@@ -285,8 +302,11 @@ var BleExt = (function () {
             errorCB();
             return;
         }
+        var self = this;
         this.ble.sampleCurrent(this.targetAddress, 0x01, function () {
-            this.ble.readCurrentConsumption(this.targetAddress, successCB); //TODO: should have an errorCB
+            setTimeout(function () {
+                self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
+            }, 100);
         }); // TODO: should have an errorCB
     };
     BleExt.prototype.readCurrentCurve = function (successCB, errorCB) {
@@ -295,8 +315,11 @@ var BleExt = (function () {
             errorCB();
             return;
         }
+        var self = this;
         this.ble.sampleCurrent(this.targetAddress, 0x02, function () {
-            this.ble.getCurrentCurve(this.targetAddress, successCB); //TODO: should have an errorCB
+            setTimeout(function () {
+                self.ble.getCurrentCurve(self.targetAddress, successCB); //TODO: should have an errorCB
+            }, 100);
         }); // TODO: should have an errorCB
     };
     BleExt.prototype.writeCurrentLimit = function (value, successCB, errorCB) {

@@ -12,6 +12,13 @@ enum BleState {
 	connected
 }
 
+enum BleFilter {
+	none,
+	crownstone,
+	doBeacon,
+	iBeacon
+}
+
 class BleDevice {
 	address = "";
 	name = "";
@@ -47,6 +54,11 @@ class BleDeviceList {
 	//	}
 	//}
 
+	clear() {
+		this.devices = [];
+	}
+
+	// TODO: keep up average rssi
 	updateDevice(device: BleDevice) {
 		var dev = this.getDevice(device.address);
 		if (dev) {
@@ -74,6 +86,7 @@ class BleExt {
 	onConnectCallback;
 	state = BleState.uninitialized;
 	disconnectTimeout;
+	scanFilter : BleFilter;
 	
 	// TODO: just inherit from base class
 	init(successCB, errorCB) {
@@ -89,11 +102,47 @@ class BleExt {
 			}.bind(this)
 		);
 	}
+
+	/*
+	 * Filter scanned devices.
+	 */
+	setScanFilter(filter : BleFilter) {
+		//if (!Array.isArray(filter)) {
+		//	console.log("Must supply an array!");
+		//	return;
+		//}
+		this.scanFilter = filter;
+	}
 	
-	startScan(scanCB) {
+	startScan(scanCB, errorCB) {
+		if (this.state !== BleState.initialized) {
+			console.log("State must be \"initialized\"");
+			return;
+		}
+		this.devices.clear();
+
 		this.state = BleState.scanning;
-		this.ble.startEndlessScan(
+		this.ble.startEndlessScan( //TODO: should have an errorCB
 			function(obj) {
+				if (this.scanFilter.length > 0) {
+					//var pass = false;
+					//for (var i=0; i<this.scanFilter.length; i++) {
+					//	if ((this.scanFilter[i] == BleFilter.crownstone && obj.isCrownstone) ||
+					//		(this.scanFilter[i] == BleFilter.doBeacon && obj.isIBeacon) ||
+					//		(this.scanFilter[i] == BleFilter.iBeacon && obj.isIBeacon)) {
+					//		pass = true;
+					//		break;
+					//	}
+					//}
+					//if (!pass) {
+					//	return;
+					//}
+					if ((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
+						(this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
+						(this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon)) {
+						return;
+					}
+				}
 				this.devices.updateDevice(new BleDevice(obj));
 				this.devices.sort();
 				if (scanCB) scanCB(obj);
@@ -257,13 +306,16 @@ class BleExt {
 		// Function to be called when connected and characteristic has been discovered.
 		var discoverSuccess = function() {
 			func(
-				function () {
+				// TODO: variable number of orguments: use "arguments.length" and successCB.apply(successCB, args)
+				// see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
+				// see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
+				function (arg) {
 					callback();
-					if (successCB) successCB();
+					if (successCB) successCB(arg);
 				},
-				function() {
+				function(arg) {
 					callback();
-					if (errorCB) errorCB();
+					if (errorCB) errorCB(arg);
 				}
 			);
 		};
@@ -277,6 +329,22 @@ class BleExt {
 	///////////////////
 	// Power service //
 	///////////////////
+
+	// TODO: keep up PWM value and use it
+	togglePower(successCB, errorCB) {
+		console.log("Toggle power");
+		this.readPWM(
+			function(value) {
+				if (value > 0) {
+					this.writePWM(0, successCB, errorCB);
+				}
+				else {
+					this.writePWM(255, successCB, errorCB);
+				}
+			}.bind(this),
+			errorCB
+		);
+	}
 
 	powerOn(successCB, errorCB) {
 		this.writePWM(255, successCB, errorCB);
@@ -338,12 +406,19 @@ class BleExt {
 			errorCB();
 			return;
 		}
+		var self = this;
 		this.ble.sampleCurrent(
 			this.targetAddress,
 			0x01,
 			function() {
-				this.ble.readCurrentConsumption(this.targetAddress, successCB); //TODO: should have an errorCB
-			}); // TODO: should have an errorCB
+				setTimeout(
+					function() {
+						self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
+					},
+					100
+				);
+			}
+		); // TODO: should have an errorCB
 	}
 
 	readCurrentCurve(successCB, errorCB) {
@@ -352,12 +427,19 @@ class BleExt {
 			errorCB();
 			return;
 		}
+		var self = this;
 		this.ble.sampleCurrent(
 			this.targetAddress,
 			0x02,
 			function() {
-				this.ble.getCurrentCurve(this.targetAddress, successCB); //TODO: should have an errorCB
-			}); // TODO: should have an errorCB
+				setTimeout(
+					function() {
+						self.ble.getCurrentCurve(self.targetAddress, successCB); //TODO: should have an errorCB
+					},
+					100
+				);
+			}
+		); // TODO: should have an errorCB
 	}
 
 	writeCurrentLimit(value, successCB, errorCB) {

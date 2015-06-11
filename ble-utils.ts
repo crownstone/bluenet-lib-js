@@ -7,7 +7,7 @@ var uint16ToByteArray = function(value) {
 	u8[0] = (value >> 0 & 0xFF);
 	u8[1] = (value >> 8 & 0xFF);
 	return u8;
-}
+};
 
 var uint32ToByteArray = function(value) {
 	var u8 = new Uint8Array(4);
@@ -16,15 +16,15 @@ var uint32ToByteArray = function(value) {
 	u8[2] = (value >> 16 & 0xFF);
 	u8[3] = (value >> 24 & 0xFF);
 	return u8;
-}
+};
 
-var byteArrayToUint32 = function(u8) {
-	return (u8[3] << 24) + (u8[2] << 16) + (u8[1] << 8) + u8[0];
-}
+var byteArrayToUint32 = function (u8, startIndex) {
+	return (u8[startIndex+3] << 24) + (u8[startIndex+2] << 16) + (u8[startIndex+1] << 8) + u8[startIndex];
+};
 
-var byteArrayToUint16 = function(u8) {
-	return (u8[1] << 8) + u8[0];
-}
+var byteArrayToUint16 = function (u8, startIndex) {
+	return (u8[startIndex+1] << 8) + u8[startIndex];
+};
 
 
 /*
@@ -59,11 +59,11 @@ var hexStringToByteArray = function(value) {
 		arr[i] = parseInt(strArr[i], 16);
 	}
 	return arr;
-}
+};
 
 var byteArrayTohexString = function(value) {
 	
-}
+};
 
 /*
  * Conversion between hex string and bluetooth address
@@ -78,4 +78,4 @@ var hexStringToBluetoothAddress = function(value) {
 		arr[5-i] = arrInv[i];
 	}
 	return arr;
-}
+};

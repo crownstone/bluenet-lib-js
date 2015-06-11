@@ -1,4 +1,15 @@
 /*
+ * Expand functionality of standard tyopes
+ */
+
+String.prototype.insert = function (index, string) {
+    if (index > 0)
+        return this.substring(0, index) + string + this.substring(index, this.length);
+    else
+        return string + this;
+};
+
+/*
  * Conversions between uint8 array and uint16 or uint32
  */
 var uint16ToByteArray = function (value) {
@@ -15,12 +26,14 @@ var uint32ToByteArray = function (value) {
     u8[3] = (value >> 24 & 0xFF);
     return u8;
 };
-var byteArrayToUint32 = function (u8) {
-    return (u8[3] << 24) + (u8[2] << 16) + (u8[1] << 8) + u8[0];
+var byteArrayToUint32 = function (u8, startIndex) {
+    return (u8[startIndex+3] << 24) + (u8[startIndex+2] << 16) + (u8[startIndex+1] << 8) + u8[startIndex];
 };
-var byteArrayToUint16 = function (u8) {
-    return (u8[1] << 8) + u8[0];
+var byteArrayToUint16 = function (u8, startIndex) {
+    return (u8[startIndex+1] << 8) + u8[startIndex];
 };
+
+
 /*
  * Conversions between uint8 array and strings
  */
