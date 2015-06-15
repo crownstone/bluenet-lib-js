@@ -1,69 +1,5 @@
-//////////////////////////////////////////////////////////////////////////////
-// Indoor Localization Service
-var indoorLocalizationServiceUuid =          '7e170000-429c-41aa-83d7-d91220abeb33';
-// Indoor Localization Service - Characteristics
-var rssiUuid =                               '7e170001-429c-41aa-83d7-d91220abeb33';
-var addTrackedDeviceUuid =                   '7e170002-429c-41aa-83d7-d91220abeb33';
-var deviceScanUuid =                         '7e170003-429c-41aa-83d7-d91220abeb33';
-var deviceListUuid =                         '7e170004-429c-41aa-83d7-d91220abeb33';
-var listTrackedDevicesUuid =                 '7e170005-429c-41aa-83d7-d91220abeb33';
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// General Service
-var generalServiceUuid =                     'f5f90000-59f9-11e4-aa15-123b93f75cba';
-// General Service - Characteristics
-var temperatureCharacteristicUuid =          'f5f90001-59f9-11e4-aa15-123b93f75cba';
-var changeNameCharacteristicUuid =           'f5f90002-59f9-11e4-aa15-123b93f75cba';
-var deviceTypeUuid =                         'f5f90003-59f9-11e4-aa15-123b93f75cba';
-var roomUuid =                               'f5f90004-59f9-11e4-aa15-123b93f75cba';
-var resetCharacteristicUuid =                'f5f90005-59f9-11e4-aa15-123b93f75cba';
-var meshCharacteristicUuid =                 'f5f90006-59f9-11e4-aa15-123b93f75cba';
-var setConfigurationCharacteristicUuid =     'f5f90007-59f9-11e4-aa15-123b93f75cba';
-var selectConfigurationCharacteristicUuid =  'f5f90008-59f9-11e4-aa15-123b93f75cba';
-var getConfigurationCharacteristicUuid =     'f5f90009-59f9-11e4-aa15-123b93f75cba';
-
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// Power Service
-var powerServiceUuid =                       '5b8d0000-6f20-11e4-b116-123b93f75cba';
-// Power Service - Characteristics
-var pwmUuid =                                '5b8d0001-6f20-11e4-b116-123b93f75cba';
-var sampleCurrentUuid =                      '5b8d0002-6f20-11e4-b116-123b93f75cba';
-var currentCurveUuid =                       '5b8d0003-6f20-11e4-b116-123b93f75cba';
-var currentConsumptionUuid =                 '5b8d0004-6f20-11e4-b116-123b93f75cba';
-var currentLimitUuid =                       '5b8d0005-6f20-11e4-b116-123b93f75cba';
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// Configuration types
-var configNameUuid                               = 0x00;
-var configDeviceTypeUuid                         = 0x01;
-var configRoomUuid                               = 0x02;
-var configFloorUuid                              = 0x03;
-var configNearbyTimeoutUuid                      = 0x04;
-var configPWMFreqUuid                            = 0x05;
-var configIBeaconMajorUuid                       = 0x06;
-var configIBeaconMinorUuid                       = 0x07;
-var configIBeaconUuidUuid                        = 0x08;
-var configIBeaconRSSIUuid                        = 0x09;
-var configWifiUuid                               = 0x0A;
-
-// Value set at reserved bytes for allignment
-var RESERVED = 0x00;
-
-//////////////////////////////////////////////////////////////////////////////
-// Mesh messages
-var channelData = 0x02;
-var meshTypePwm =            0x01;
-var meshTypeBeaconConfig =   0x02;
-
-//////////////////////////////////////////////////////////////////////////////
-var APPLE_COMPANY_ID = 0x004c;
-var IBEACON_ADVERTISEMENT_ID = 0x0215;
-
-//////////////////////////////////////////////////////////////////////////////
+/// <reference path="ble-types.ts"/>
+/// <reference path="ble-utils.ts"/>
 
 declare var bluetoothle;
 declare var Navigator;
@@ -82,16 +18,17 @@ var BleBase = function() {
 
 	self.init = function(callback) {
 		console.log("Initialize BLE hardware");
-		bluetoothle.initialize(function(obj) {
+		bluetoothle.initialize(
+			function(obj) {
 				console.log('Properly connected to BLE chip');
-				console.log("Message " + JSON.stringify(obj));
-				if (obj.status == 'enabled' || obj.status == 'initialized') {
+				// console.log("Message " + JSON.stringify(obj));
+				if (obj.status == 'enabled') {
 					callback(true);
 				}
 			},
 			function(obj) {
 				console.log('Connection to BLE chip failed');
-				console.log('Message', obj.status);
+				console.log('Message' + obj.status);
 				navigator.notification.alert(
 						'Bluetooth is not turned on, or could not be turned on. Make sure your phone has a Bluetooth 4.+ (BLE) chip.',
 						null,
@@ -99,7 +36,8 @@ var BleBase = function() {
 						'Sorry!');
 				callback(false);
 			},
-			{"request": true});
+			{"request": true}
+		);
 	}
 
 	self.isConnected = function(address) {
@@ -304,7 +242,7 @@ var BleBase = function() {
 		var paramsObj = {};
 		bluetoothle.startScan(function(obj) {  // start scan success
 				if (obj.status == 'scanResult') {
-					console.log('Found device, parse and call callback if company id == ' + dobotsCompanyId);
+					// console.log('Found device, parse and call callback if company id == ' + dobotsCompanyId);
 					var arr = bluetoothle.encodedStringToBytes(obj.advertisement);
 					self.parseAdvertisement(arr, 0xFF, function(data) {
 						var companyId = byteArrayToUint16(data, 0);
@@ -325,12 +263,12 @@ var BleBase = function() {
 				}
 			},
 			function(obj) { // start scan error
-				console.log('Scan error', obj.status);
-				navigator.notification.alert(
-						'Could not find a device using Bluetooth scanning.',
-						null,
-						'Status',
-						'Sorry!');
+				console.log('Scan error, status: ' + obj.status);
+				// navigator.notification.alert(
+				// 		'Scan Error',
+				// 		null,
+				// 		'Status',
+				// 		'Sorry!');
 			},
 			paramsObj);
 	}
@@ -381,9 +319,7 @@ var BleBase = function() {
 			obj.rssi = data[24];
 
 			// make signed
-			if (obj.rssi > 127) {
-				obj.rssi -= 256;
-			}
+			obj.rssi = unsignedToSignedByte(obj.rssi);
 		} else {
 			obj.isIBeacon = false;
 		}
@@ -700,56 +636,14 @@ var BleBase = function() {
 			paramsObj);
 	}
 
-	// TODO: doesn't exist anymore, should be done via writeConfiguration
-	self.writeDeviceName = function(address, value) {
-		if (value != "") {
-		var u8 = bluetoothle.stringToBytes(value);
-		} else {
-			var u8 = new Uint8Array(1);
-			u8[0] = 0;
-		}
-		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid + ' and characteristic ' + changeNameCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": changeNameCharacteristicUuid , "value" : v};
-		bluetoothle.write(function(obj) { // write success
-				if (obj.status == 'written') {
-					console.log('Successfully written to change name characteristic - ' + obj.status);
-				} else {
-					console.log('Writing to change name characteristic was not successful' + obj);
-				}
-			},
-			function(obj) { // write error
-				console.log("Error in writing to change name characteristic: " + obj.error + " - " + obj.message);
-			},
-			paramsObj);
-	}
-
-	// TODO: doesn't exist anymore
-	self.readDeviceName = function(address, callback) {
-		console.log("Read device type at service " + generalServiceUuid +
-				' and characteristic ' + changeNameCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
-			"characteristicUuid": changeNameCharacteristicUuid };
-		bluetoothle.read(function(obj) { // read success
-				if (obj.status == "read")
-				{
-					var deviceName = bluetoothle.encodedStringToBytes(obj.value);
-					var deviceNameStr = bluetoothle.bytesToString(deviceName);
-					console.log("deviceName: " + deviceNameStr);
-
-					callback(deviceNameStr);
-				}
-				else
-				{
-					console.log("Unexpected read status: " + obj.status);
-					self.disconnectDevice(address);
-				}
-			},
-			function(obj) { // read error
-				console.log('Error in reading change name characteristic: ' +
-					obj.error + " - " + obj.message);
-			},
-			paramsObj);
+	/* set floor to value
+	 */
+	self.setFloor = function(address, value, successCB, errorCB) {
+		var configuration = {};
+		configuration.type = configFloorUuid;
+		configuration.length = 1;
+		configuration.payload = [value];
+		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
 	/** Get a floor from the connected device
@@ -769,16 +663,6 @@ var BleBase = function() {
 				}
 			},
 			errorCB);
-	}
-
-	/* set floor to value
-	 */
-	self.setFloor = function(address, value, successCB, errorCB) {
-		var configuration = {};
-		configuration.type = configFloorUuid;
-		configuration.length = 1;
-		configuration.payload = [value];
-		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
 	// TODO: should be writeWifi()
@@ -801,7 +685,7 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
-	self.setMajor = function(address, value, successCB, errorCB) {
+	self.setBeaconMajor = function(address, value, successCB, errorCB) {
 		console.log("set major to " + value);
 		var configuration = {};
 		configuration.type = configIBeaconMajorUuid;
@@ -810,7 +694,25 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
-	self.setMinor = function(address, value, successCB, errorCB) {
+	self.getBeaconMajor = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			configIBeaconMajorUuid,
+			function(configuration) {
+				if (configuration.length > 2) {
+					var msg = "Configuration value for major should have length 2";
+					if (errorCB) errorCB(msg);
+				} else {
+					var major = byteArrayToUint16(configuration.payload);
+					console.log("Major is set to: " + major);
+					if (successCB) successCB(major);
+				}
+			},
+			errorCB
+		);
+	}
+
+	self.setBeaconMinor = function(address, value, successCB, errorCB) {
 		console.log("set minor to " + value);
 		var configuration = {};
 		configuration.type = configIBeaconMinorUuid;
@@ -819,7 +721,25 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
-	self.setRssi = function(address, value, successCB, errorCB) {
+	self.getBeaconMinor = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			configIBeaconMinorUuid,
+			function(configuration) {
+				if (configuration.length > 2) {
+					var msg = "Configuration value for minor should have length 2";
+					if (errorCB) errorCB(msg);
+				} else {
+					var minor = byteArrayToUint16(configuration.payload);
+					console.log("Minor is set to: " + minor);
+					if (successCB) successCB(minor);
+				}
+			},
+			errorCB
+		);
+	}
+
+	self.setBeaconRssi = function(address, value, successCB, errorCB) {
 		console.log("set rssi to " + value);
 		var configuration = {};
 		configuration.type = configIBeaconRSSIUuid;
@@ -828,7 +748,25 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
-	self.setUuid = function(address, value, successCB, errorCB) {
+	self.getBeaconRssi = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			configIBeaconRssiUuid,
+			function(configuration) {
+				if (configuration.length > 1) {
+					var msg = "Configuration value for rssi should have length 1";
+					if (errorCB) errorCB(msg);
+				} else {
+					var rssi = unsignedToSignedByte(configuration.payload[0]);
+					console.log("Rssi is set to: " + rssi);
+					if (successCB) successCB(rssi);
+				}
+			},
+			errorCB
+		);
+	}
+
+	self.setBeaconUuid = function(address, value, successCB, errorCB) {
 		console.log("set uuid to " + value);
 		var configuration = {};
 		configuration.type = configIBeaconUuidUuid;
@@ -837,7 +775,25 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
-	self.setName = function(address, value, successCB, errorCB) {
+	self.getBeaconUuid = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			configIBeaconUuidUuid,
+			function(configuration) {
+				if (configuration.length > 16) {
+					var msg = "Configuration value for uuid should have length 16";
+					if (errorCB) errorCB(msg);
+				} else {
+					var uuid = self.bytesToUuid(configuration.payload);
+					console.log("Uuid is set to: " + uuid);
+					if (successCB) successCB(uuid);
+				}
+			},
+			errorCB
+		);
+	}
+
+	self.setDeviceName = function(address, value, successCB, errorCB) {
 		console.log("set name to " + value);
 		var configuration = {};
 		configuration.type = configNameUuid;
@@ -846,6 +802,22 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
+	self.getDeviceName = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			configNameUuid,
+			function(configuration) {
+				if (configuration.length == 0) {
+					if (errorCB) errorCB("received empty name");
+				} else {
+					var name = bluetoothle.bytesToString(configuration.payload);
+					console.log("Name is set to: " + name);
+					if (successCB) successCB(name);
+				}
+			},
+			errorCB
+		);
+	}
 
 	/** Select and read configuration
 	 */
@@ -983,7 +955,7 @@ var BleBase = function() {
 	 * .payload: data to be sent
 	 */
 	self.writeMeshMessage = function(address, message, successCB, errorCB) {
-		
+
 		message.length += 8 // Add length of target address and length of message type
 		// build up a single byte array, prepending payload with type and payload length, preamble size is 4
 		var u8 = new Uint8Array(message.length+12);
@@ -991,7 +963,7 @@ var BleBase = function() {
 		u8[1] = RESERVED;
 		u8[2] = (message.length & 0xFF); // endianness: least significant byte first
 		u8[3] = (message.length >> 8 & 0xFF);
-		
+
 		if (message.target.length != 6) {
 			console.log("invalid bluetooth address ", message.target);
 			return;
@@ -1000,7 +972,7 @@ var BleBase = function() {
 		u8[10] = (message.type & 0xFF); // endianness: least significant byte first
 		u8[11] = (message.type >> 8 & 0xFF);
 		u8.set(message.payload, 12);
-		
+
 		var v = bluetoothle.bytesToEncodedString(u8);
 		console.log("Write " + v + " at service " + generalServiceUuid +
 				' and characteristic ' + meshCharacteristicUuid );
