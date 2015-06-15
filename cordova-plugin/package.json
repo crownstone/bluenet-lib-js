@@ -1,0 +1,18 @@
+{
+    "version": "0.0.1",
+    "name": "nl.dobots.bluenet",
+    "cordova_name": "BlueNet",
+    "description": "Library to interface with bluetooth devices running BlueNet",
+    "license": "LGPL v3+, Apache, or MIT, your choice",
+    "keywords": [
+        "bluetooth",
+        "bluenet",
+	"cordova",
+	"ecosystem:cordova"
+    ],
+    "platforms": [
+        "android",
+        "ios"
+    ],
+    "engines": []
+}

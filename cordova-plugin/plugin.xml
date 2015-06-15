@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="nl.dobots.bluenet" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+	<name>BlueNet</name>
+	<description>Library to interface with bluetooth devices running BlueNet</description>
+	<license>LGPL v3+, Apache, or MIT, your choice</license>
+	<keywords>bluetooth,bluenet</keywords>
+	<js-module name="BlueNet" src="www/BlueNet.js">
+		<clobbers target="cordova.plugins.BlueNet" />
+	</js-module>
+	<platform name="android">
+		<config-file target="res/xml/config.xml" parent="/*">
+			<feature name="BlueNetPlugin">
+				<param name="android-package" value="nl.dobots.bluenet.BlueNetPlugin" />
+			</feature>
+		</config-file>
+<!--
+		<source-file src="src/android/BluetoothLePlugin.java" target-dir="src/com/randdusing/bluetoothle" />
+-->
+		<config-file target="AndroidManifest.xml" parent="/manifest">
+			<uses-permission android:name="android.permission.BLUETOOTH"/>
+			<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+		</config-file>
+	</platform>
+	<platform name="ios">
+		<config-file target="config.xml" parent="/*">
+			<feature name="BlueNet">
+				<param name="ios-package" value="BlueNet"/>
+			</feature>
+		</config-file>
+<!--
+		<header-file src="src/ios/CDVDevice.h" />
+		<source-file src="src/ios/CDVDevice.m" />
+-->
+	</platform>
+</plugin>
