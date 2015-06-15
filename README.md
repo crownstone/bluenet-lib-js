@@ -5,4 +5,4 @@ JavaScript library to interface with devices running bluenet
 
 compile library with:
 
-	tsc --out ble.js ble-ext.ts
+	tsc --out ble.js www/ts/ble-ext.ts

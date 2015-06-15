@@ -1209,11 +1209,10 @@ var BleExt = (function () {
     }
     // TODO: just inherit from base class
     BleExt.prototype.init = function (successCB, errorCB) {
-        if (this.state == BleState.initialized) {
-            if (successCB)
-                successCB();
-            return;
-        }
+        // if (this.state == BleState.initialized) {
+        // 	if (successCB) successCB();
+        // 	return;
+        // }
         this.ble.init(function (enabled) {
             if (enabled) {
                 this.state = BleState.initialized;
@@ -1238,10 +1237,10 @@ var BleExt = (function () {
         this.scanFilter = filter;
     };
     BleExt.prototype.startScan = function (scanCB, errorCB) {
-        // if (this.state !== BleState.initialized) {
-        // 	console.log("State must be \"initialized\"");
-        // 	return;
-        // }
+        if (this.state !== BleState.initialized) {
+            console.log("State must be \"initialized\"");
+            return;
+        }
         this.devices.clear();
         this.state = BleState.scanning;
         this.ble.startEndlessScan(function (obj) {
