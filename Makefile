@@ -2,7 +2,7 @@
 all: js
 
 js:
-	tsc --out ble.js www/ts/ble-ext.ts
+	tsc --out www/bluenet.js www/ts/bluenet.ts
 
 clean:
-	rm ble.js
+	rm bluenet.js
