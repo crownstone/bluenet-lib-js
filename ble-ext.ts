@@ -1,6 +1,8 @@
 // TODO: discover services
 // TODO: sort ascending / descending
 
+/// <reference path="ble-base.ts"/>
+/// <reference path="ble-utils.ts"/>
 
 declare var BleBase;
 
@@ -13,7 +15,7 @@ enum BleState {
 }
 
 enum BleFilter {
-	none,
+	all,
 	crownstone,
 	doBeacon,
 	iBeacon
@@ -86,10 +88,15 @@ class BleExt {
 	onConnectCallback;
 	state = BleState.uninitialized;
 	disconnectTimeout;
-	scanFilter : BleFilter;
-	
+	scanFilter = BleFilter.all;
+
 	// TODO: just inherit from base class
 	init(successCB, errorCB) {
+		// if (this.state == BleState.initialized) {
+		// 	if (successCB) successCB();
+		// 	return;
+		// }
+
 		this.ble.init(
 			function(enabled) {
 				if (enabled) {
@@ -97,6 +104,7 @@ class BleExt {
 					if (successCB) successCB();
 				}
 				else {
+					this.state = BleState.uninitialized;
 					if (errorCB) errorCB();
 				}
 			}.bind(this)
@@ -113,7 +121,7 @@ class BleExt {
 		//}
 		this.scanFilter = filter;
 	}
-	
+
 	startScan(scanCB, errorCB) {
 		if (this.state !== BleState.initialized) {
 			console.log("State must be \"initialized\"");
@@ -124,7 +132,7 @@ class BleExt {
 		this.state = BleState.scanning;
 		this.ble.startEndlessScan( //TODO: should have an errorCB
 			function(obj) {
-				if (this.scanFilter.length > 0) {
+				// if (this.scanFilter.length > 0) {
 					//var pass = false;
 					//for (var i=0; i<this.scanFilter.length; i++) {
 					//	if ((this.scanFilter[i] == BleFilter.crownstone && obj.isCrownstone) ||
@@ -137,11 +145,12 @@ class BleExt {
 					//if (!pass) {
 					//	return;
 					//}
-					if ((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
-						(this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
-						(this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon)) {
-						return;
-					}
+				// }
+				if ((this.scanFilter != BleFilter.all) &&
+					((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
+					(this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
+					(this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon))) {
+					return;
 				}
 				this.devices.updateDevice(new BleDevice(obj));
 				this.devices.sort();
@@ -149,7 +158,7 @@ class BleExt {
 			}.bind(this)
 		);
 	}
-	
+
 	// TODO: just inherit from base class
 	stopScan(successCB, errorCB) {
 		this.state = BleState.initialized;
@@ -356,7 +365,7 @@ class BleExt {
 
 	writePWM(pwm, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("Set pwm to " + pwm);
@@ -372,7 +381,7 @@ class BleExt {
 
 	readPWM(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(pwmUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("Reading current PWM value");
@@ -403,7 +412,7 @@ class BleExt {
 	readCurrentConsumption(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
 			!this.characteristics.hasOwnProperty(currentConsumptionUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		var self = this;
@@ -424,7 +433,7 @@ class BleExt {
 	readCurrentCurve(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(sampleCurrentUuid) ||
 			!this.characteristics.hasOwnProperty(currentCurveUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		var self = this;
@@ -444,7 +453,7 @@ class BleExt {
 
 	writeCurrentLimit(value, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(currentLimitUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("TODO");
@@ -453,7 +462,7 @@ class BleExt {
 
 	readCurrentLimit(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(currentLimitUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("TODO");
@@ -466,7 +475,7 @@ class BleExt {
 
 	readTemperature(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(temperatureCharacteristicUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.readTemperature(this.targetAddress, successCB); //TODO: should have an errorCB
@@ -474,11 +483,17 @@ class BleExt {
 
 	writeMeshMessage(obj, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(meshCharacteristicUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("Send mesh message: ", obj);
 		this.ble.writeMeshMessage(this.targetAddress, obj, successCB, errorCB)
+	}
+
+	hasConfigurationCharacteristics() {
+		return this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) &&
+			this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid) &&
+			this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid);
 	}
 
 	writeConfiguration(obj, successCB, errorCB) {
@@ -500,7 +515,7 @@ class BleExt {
 		if (!this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) ||
 			!this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid)) {
 			console.log("Missing characteristic UUID");
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.getConfiguration(this.targetAddress, configurationType, successCB, errorCB);
@@ -509,53 +524,137 @@ class BleExt {
 	// TODO writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
 
 	readDeviceName(successCB, errorCB) {
-		console.log("TODO");
-		//this.readConfiguration(configNameUuid, successCB, errorCB);
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getDeviceName(this.targetAddress, successCB, errorCB);
 	}
 
 	writeDeviceName(value, successCB, errorCB) {
-		console.log("TODO");
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setDeviceName(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readBeaconMajor(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getBeaconMajor(this.targetAddress, successCB, errorCB);
+	}
+
+	writeBeaconMajor(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setBeaconMajor(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readBeaconMinor(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getBeaconMinor(this.targetAddress, successCB, errorCB);
+	}
+
+	writeBeaconMinor(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setBeaconMinor(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readBeaconUuid(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getBeaconUuid(this.targetAddress, successCB, errorCB);
+	}
+
+	writeBeaconUuid(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setBeaconUuid(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readBeaconRssi(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getBeaconRssi(this.targetAddress, successCB, errorCB);
+	}
+
+	writeBeaconRssi(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setBeaconRssi(this.targetAddress, value, successCB, errorCB);
 	}
 
 	readDeviceType(successCB, errorCB) {
-		console.log("TODO");
-		//this.readConfiguration(configNameUuid, successCB, errorCB);
+		// if (!this.hasConfigurationCharacteristics()) {
+		// 	if (errorCB) errorCB();
+		// 	return;
+		// }
+		// this.ble.getDeviceType(this.targetAddress, successCB, errorCB);
 	}
 
 	writeDeviceType(value, successCB, errorCB) {
-		console.log("TODO");
+		// if (!this.hasConfigurationCharacteristics()) {
+		// 	if (errorCB) errorCB();
+		// 	return;
+		// }
+		// this.ble.setDeviceType(this.targetAddress, value, successCB, errorCB);
 	}
 
 	readFloor(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(selectConfigurationCharacteristicUuid) ||
-			!this.characteristics.hasOwnProperty(getConfigurationCharacteristicUuid)) {
-			errorCB();
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.getFloor(this.targetAddress, successCB, errorCB);
 	}
 
 	writeFloor(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
-			errorCB();
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.setFloor(this.targetAddress, value, successCB, errorCB);
 	}
 
 	readRoom(successCB, errorCB) {
-		console.log("TODO");
-		//this.readConfiguration(configNameUuid, successCB, errorCB);
+		// if (!this.hasConfigurationCharacteristics()) {
+		// 	if (errorCB) errorCB();
+		// 	return;
+		// }
+		// this.ble.getRoom(this.targetAddress, successCB, errorCB);
 	}
 
 	writeRoom(value, successCB, errorCB) {
-		console.log("TODO");
+		// if (!this.hasConfigurationCharacteristics()) {
+		// 	if (errorCB) errorCB();
+		// 	return;
+		// }
+		// this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
 	}
 
 	// TODO: value should be an object with ssid and pw
 	writeWifi(value, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(setConfigurationCharacteristicUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("Set wifi to " + value);
@@ -594,7 +693,7 @@ class BleExt {
 
 	readTrackedDevices(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
@@ -602,7 +701,7 @@ class BleExt {
 
 	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(addTrackedDeviceUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		console.log("TODO");
@@ -610,7 +709,7 @@ class BleExt {
 
 	readScannedDevices(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(deviceListUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
@@ -618,7 +717,7 @@ class BleExt {
 
 	writeScanDevices(scan : boolean, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(deviceScanUuid)) {
-			errorCB();
+			if (errorCB) errorCB();
 			return;
 		}
 		this.ble.scanDevices(this.targetAddress, scan); //TODO: needs callbacks

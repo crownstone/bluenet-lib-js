@@ -62,7 +62,7 @@ var hexStringToByteArray = function(value) {
 };
 
 var byteArrayTohexString = function(value) {
-	
+
 };
 
 /*
@@ -79,3 +79,12 @@ var hexStringToBluetoothAddress = function(value) {
 	}
 	return arr;
 };
+
+var unsignedToSignedByte = function(value) {
+	// make signed
+	if (value > 127) {
+		return value - 256;
+	} else {
+		return value;
+	}
+}
