@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "homepage": "https://github.com/dobots/bluenet-lib-js",
   "description": "bluetooth le library for crownstones and dobeacons",
-  "main": "./ble.js",
+  "main": ".www/bluenet.js",
   "keywords": [
     "bluetoothle",
     "crownstone",
