@@ -1813,6 +1813,7 @@ bluenet.Device = BleDevice;
 bluenet.Extended = BleExt;
 bluenet.Utils = BleUtils;
 bluenet.Filter = BleFilter;
+bluenet.BleTypes = BleTypes;
 module.exports = bluenet;
 // Dirty hack to avoid class functions not being able to find other classes
 if (window) {
@@ -1823,4 +1824,5 @@ if (window) {
     window.BleExt = BleExt;
     window.BleUtils = BleUtils;
     window.BleFilter = BleFilter;
+    window.BleTypes = BleTypes;
 }
