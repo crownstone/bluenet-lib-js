@@ -4,7 +4,7 @@
 	<description>Library to interface with bluetooth devices running BlueNet</description>
 	<license>LGPL v3+, Apache, or MIT, your choice</license>
 	<keywords>bluetooth,bluenet</keywords>
-	<js-module name="BlueNet" src="www/bluenet.js">
+	<js-module name="bluenet" src="www/bluenet.js">
 		<clobbers target="bluenet" />
 	</js-module>
 	<platform name="android">
