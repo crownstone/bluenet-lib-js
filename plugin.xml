@@ -5,7 +5,7 @@
 	<license>LGPL v3+, Apache, or MIT, your choice</license>
 	<keywords>bluetooth,bluenet</keywords>
 	<js-module name="BlueNet" src="www/bluenet.js">
-		<clobbers target="cordova.plugins.BlueNet" />
+		<clobbers target="window.bluenet" />
 	</js-module>
 	<platform name="android">
 		<config-file target="res/xml/config.xml" parent="/*">
