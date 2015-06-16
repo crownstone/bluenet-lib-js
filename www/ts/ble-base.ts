@@ -252,7 +252,7 @@ var BleBase = function() {
 					var arr = bluetoothle.encodedStringToBytes(obj.advertisement);
 					self.parseAdvertisement(arr, 0xFF, function(data) {
 						var companyId = BleUtils.byteArrayToUint16(data, 0);
-						if (companyId == APPLE_COMPANY_ID) {
+						if (companyId == BleTypes.APPLE_COMPANY_ID) {
 							self.parseIBeaconData(obj, data);
 						}
 						if (companyId == dobotsCompanyId) {
@@ -317,7 +317,7 @@ var BleBase = function() {
 	self.parseIBeaconData = function(obj, data) {
 		var companyId = data[0] | data[1] << 8; // little endian
 		var advertisementId = data[2] << 8 | data[3]; // big endian
-		if (companyId == APPLE_COMPANY_ID && advertisementId == IBEACON_ADVERTISEMENT_ID) {
+		if (companyId == BleTypes.APPLE_COMPANY_ID && advertisementId == BleTypes.IBEACON_ADVERTISEMENT_ID) {
 			obj.isIBeacon = true;
 			obj.uuid = self.bytesToUuid(data.subarray(4, 20));
 			obj.major = data[20] << 8 | data[21]; // big endian
@@ -416,8 +416,8 @@ var BleBase = function() {
 	}
 
 	self.readTemperature = function(address, callback) {
-		console.log("Read temperature at service " + generalServiceUuid + ' and characteristic ' + temperatureCharacteristicUuid);
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": temperatureCharacteristicUuid};
+		console.log("Read temperature at service " + BleTypes.generalServiceUuid + ' and characteristic ' + BleTypes.temperatureCharacteristicUuid);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid, "characteristicUuid": BleTypes.temperatureCharacteristicUuid};
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -442,8 +442,8 @@ var BleBase = function() {
 		var u8 = new Uint8Array(1);
 		u8[0] = scan ? 1 : 0;
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + indoorLocalizationServiceUuid + ' and characteristic ' + deviceScanUuid );
-		var paramsObj = {"address": address, "serviceUuid": indoorLocalizationServiceUuid, "characteristicUuid": deviceScanUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.indoorLocalizationServiceUuid + ' and characteristic ' + BleTypes.deviceScanUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.indoorLocalizationServiceUuid, "characteristicUuid": BleTypes.deviceScanUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to device scan characteristic - ' + obj.status);
@@ -458,8 +458,8 @@ var BleBase = function() {
 	}
 
 	self.listDevices = function(address, callback) {
-		console.log("Read device list at service " + indoorLocalizationServiceUuid + ' and characteristic ' + deviceListUuid );
-		var paramsObj = {"address": address, "serviceUuid": indoorLocalizationServiceUuid, "characteristicUuid": deviceListUuid };
+		console.log("Read device list at service " + BleTypes.indoorLocalizationServiceUuid + ' and characteristic ' + BleTypes.deviceListUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.indoorLocalizationServiceUuid, "characteristicUuid": BleTypes.deviceListUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -484,8 +484,8 @@ var BleBase = function() {
 		var u8 = new Uint8Array(1);
 		u8[0] = value;
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + powerServiceUuid + ' and characteristic ' + pwmUuid );
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": pwmUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.pwmUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.pwmUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to pwm characteristic - ' + obj.status);
@@ -507,8 +507,8 @@ var BleBase = function() {
 
 	// TODO: should have errorCB
 	self.readPWM = function(address, callback) {
-		console.log("Read current consumption at service " + powerServiceUuid + ' and characteristic ' + pwmUuid);
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": pwmUuid};
+		console.log("Read current consumption at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.pwmUuid);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.pwmUuid};
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -531,8 +531,8 @@ var BleBase = function() {
 
 	// TODO: should have errorCB
 	self.readCurrentConsumption = function(address, callback) {
-		console.log("Read current consumption at service " + powerServiceUuid + ' and characteristic ' + currentConsumptionUuid);
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentConsumptionUuid};
+		console.log("Read current consumption at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.currentConsumptionUuid);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.currentConsumptionUuid};
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -558,8 +558,8 @@ var BleBase = function() {
 		var u8 = new Uint8Array(1);
 		u8[0] = value;
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + powerServiceUuid + ' and characteristic ' + sampleCurrentUuid );
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": sampleCurrentUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.sampleCurrentUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.sampleCurrentUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to sample current characteristic - ' + obj.status);
@@ -587,8 +587,8 @@ var BleBase = function() {
 
 	// TODO: should have errorCB
 	self.getCurrentCurve = function(address, callback) {
-		console.log("Read current curve at service " + powerServiceUuid + ' and characteristic ' + currentCurveUuid );
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentCurveUuid };
+		console.log("Read current curve at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.currentCurveUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.currentCurveUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -647,7 +647,7 @@ var BleBase = function() {
 	self.setFloor = function(address, value, successCB, errorCB) {
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configFloorUuid;
+		configuration.type = BleTypes.configFloorUuid;
 		configuration.length = 1;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -658,7 +658,7 @@ var BleBase = function() {
 	self.getFloor = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configFloorUuid,
+			BleTypes.configFloorUuid,
 			function(configuration) {
 				if (configuration.length != 1) {
 					var msg = "Configuration value for floor level should have length 1";
@@ -686,7 +686,7 @@ var BleBase = function() {
 
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configWifiUuid;
+		configuration.type = BleTypes.configWifiUuid;
 		configuration.length = value.length; // TODO: should be u8.length?
 		configuration.payload = u8;
 		console.log("Send payload: " + u8);
@@ -697,7 +697,7 @@ var BleBase = function() {
 		console.log("set major to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configIBeaconMajorUuid;
+		configuration.type = BleTypes.configIBeaconMajorUuid;
 		configuration.length = 2;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -706,7 +706,7 @@ var BleBase = function() {
 	self.getBeaconMajor = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configIBeaconMajorUuid,
+			BleTypes.configIBeaconMajorUuid,
 			function(configuration) {
 				if (configuration.length > 2) {
 					var msg = "Configuration value for major should have length 2";
@@ -725,7 +725,7 @@ var BleBase = function() {
 		console.log("set minor to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configIBeaconMinorUuid;
+		configuration.type = BleTypes.configIBeaconMinorUuid;
 		configuration.length = 2;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -734,7 +734,7 @@ var BleBase = function() {
 	self.getBeaconMinor = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configIBeaconMinorUuid,
+			BleTypes.configIBeaconMinorUuid,
 			function(configuration) {
 				if (configuration.length > 2) {
 					var msg = "Configuration value for minor should have length 2";
@@ -753,7 +753,7 @@ var BleBase = function() {
 		console.log("set rssi to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configIBeaconRssiUuid;
+		configuration.type = BleTypes.configIBeaconRssiUuid;
 		configuration.length = 1;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -762,7 +762,7 @@ var BleBase = function() {
 	self.getBeaconRssi = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configIBeaconRssiUuid,
+			BleTypes.configIBeaconRssiUuid,
 			function(configuration) {
 				if (configuration.length > 1) {
 					var msg = "Configuration value for rssi should have length 1";
@@ -781,7 +781,7 @@ var BleBase = function() {
 		console.log("set uuid to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configIBeaconUuidUuid;
+		configuration.type = BleTypes.configIBeaconUuidUuid;
 		configuration.payload = self.uuidToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -790,7 +790,7 @@ var BleBase = function() {
 	self.getBeaconUuid = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configIBeaconUuidUuid,
+			BleTypes.configIBeaconUuidUuid,
 			function(configuration) {
 				if (configuration.length > 16) {
 					var msg = "Configuration value for uuid should have length 16";
@@ -809,7 +809,7 @@ var BleBase = function() {
 		console.log("set name to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
-		configuration.type = configNameUuid;
+		configuration.type = BleTypes.configNameUuid;
 		configuration.payload = bluetoothle.stringToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
@@ -818,7 +818,7 @@ var BleBase = function() {
 	self.getDeviceName = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
-			configNameUuid,
+			BleTypes.configNameUuid,
 			function(configuration) {
 				if (configuration.length == 0) {
 					if (errorCB) errorCB("received empty name");
@@ -850,10 +850,10 @@ var BleBase = function() {
 	/** Get a specific configuration, selected before in selectConfiguration
 	 */
 	self.readConfiguration = function(address, successCB, errorCB) {
-		console.log("Read configuration at service " + generalServiceUuid +
-				' and characteristic ' + getConfigurationCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
-			"characteristicUuid": getConfigurationCharacteristicUuid};
+		console.log("Read configuration at service " + BleTypes.generalServiceUuid +
+				' and characteristic ' + BleTypes.getConfigurationCharacteristicUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid,
+			"characteristicUuid": BleTypes.getConfigurationCharacteristicUuid};
 		bluetoothle.read(
 			function(obj) { // read success
 				if (obj.status == "read") {
@@ -894,16 +894,16 @@ var BleBase = function() {
 		// build up a single byte array, prepending payload with type and payload length, preamble size is 4
 		var u8 = new Uint8Array(configuration.length+4);
 		u8[0] = configuration.type;
-		u8[1] = RESERVED;
+		u8[1] = BleTypes.RESERVED;
 		u8[2] = (configuration.length & 0xFF); // endianness: least significant byte first
 		u8[3] = ((configuration.length >> 8) & 0xFF);
 		u8.set(configuration.payload, 4);
 
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid +
-				' and characteristic ' + setConfigurationCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
-			"characteristicUuid": setConfigurationCharacteristicUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.generalServiceUuid +
+				' and characteristic ' + BleTypes.setConfigurationCharacteristicUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid,
+			"characteristicUuid": BleTypes.setConfigurationCharacteristicUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					var msg = 'Successfully written to "write configuration" characteristic - ' +
@@ -933,10 +933,10 @@ var BleBase = function() {
 		u8[0] = configurationType;
 
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid +
-				' and characteristic ' + selectConfigurationCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
-			"characteristicUuid": selectConfigurationCharacteristicUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.generalServiceUuid +
+				' and characteristic ' + BleTypes.selectConfigurationCharacteristicUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid,
+			"characteristicUuid": BleTypes.selectConfigurationCharacteristicUuid , "value" : v};
 		bluetoothle.write(
 			function(obj) { // write success
 				if (obj.status == 'written') {
@@ -974,7 +974,7 @@ var BleBase = function() {
 		// build up a single byte array, prepending payload with type and payload length, preamble size is 4
 		var u8 = new Uint8Array(message.length+12);
 		u8[0] = message.channel;
-		u8[1] = RESERVED;
+		u8[1] = BleTypes.RESERVED;
 		u8[2] = (message.length & 0xFF); // endianness: least significant byte first
 		u8[3] = (message.length >> 8 & 0xFF);
 
@@ -988,10 +988,10 @@ var BleBase = function() {
 		u8.set(message.payload, 12);
 
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid +
-				' and characteristic ' + meshCharacteristicUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid,
-			"characteristicUuid": meshCharacteristicUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.generalServiceUuid +
+				' and characteristic ' + BleTypes.meshCharacteristicUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid,
+			"characteristicUuid": BleTypes.meshCharacteristicUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					var msg = 'Successfully written to "mesh" characteristic - ' + obj.status;
@@ -1016,8 +1016,8 @@ var BleBase = function() {
 	self.writeDeviceType = function(address, value) {
 		var u8 = bluetoothle.stringToBytes(value);
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid + ' and characteristic ' + deviceTypeUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": deviceTypeUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.generalServiceUuid + ' and characteristic ' + BleTypes.deviceTypeUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid, "characteristicUuid": BleTypes.deviceTypeUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to device type characteristic - ' + obj.status);
@@ -1033,8 +1033,8 @@ var BleBase = function() {
 
 	// TODO: doesn't exist anymore
 	self.readDeviceType = function(address, callback) {
-		console.log("Read device type at service " + generalServiceUuid + ' and characteristic ' + deviceTypeUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": deviceTypeUuid };
+		console.log("Read device type at service " + BleTypes.generalServiceUuid + ' and characteristic ' + BleTypes.deviceTypeUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid, "characteristicUuid": BleTypes.deviceTypeUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -1060,8 +1060,8 @@ var BleBase = function() {
 	self.writeRoom = function(address, value) {
 		var u8 = bluetoothle.stringToBytes(value);
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + generalServiceUuid + ' and characteristic ' + roomUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": roomUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.generalServiceUuid + ' and characteristic ' + BleTypes.roomUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid, "characteristicUuid": BleTypes.roomUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to room characteristic - ' + obj.status);
@@ -1077,8 +1077,8 @@ var BleBase = function() {
 
 	// TODO: doesn't exist anymore
 	self.readRoom = function(address, callback) {
-		console.log("Read room at service " + generalServiceUuid + ' and characteristic ' + roomUuid );
-		var paramsObj = {"address": address, "serviceUuid": generalServiceUuid, "characteristicUuid": roomUuid };
+		console.log("Read room at service " + BleTypes.generalServiceUuid + ' and characteristic ' + BleTypes.roomUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.generalServiceUuid, "characteristicUuid": BleTypes.roomUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -1105,8 +1105,8 @@ var BleBase = function() {
 		u8[0] = value & 0xFF;
 		// u8[1] = (value >> 8) & 0xFF;
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + powerServiceUuid + ' and characteristic ' + currentLimitUuid );
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentLimitUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.currentLimitUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.currentLimitUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to current limit characteristic - ' + obj.status);
@@ -1121,8 +1121,8 @@ var BleBase = function() {
 	}
 
 	self.readCurrentLimit = function(address, callback) {
-		console.log("Read current limit at service " + powerServiceUuid + ' and characteristic ' + currentLimitUuid );
-		var paramsObj = {"address": address, "serviceUuid": powerServiceUuid, "characteristicUuid": currentLimitUuid };
+		console.log("Read current limit at service " + BleTypes.powerServiceUuid + ' and characteristic ' + BleTypes.currentLimitUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.powerServiceUuid, "characteristicUuid": BleTypes.currentLimitUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -1146,8 +1146,8 @@ var BleBase = function() {
 	}
 
 	self.getTrackedDevices = function(address, callback) {
-		console.log("Read device list at service " + indoorLocalizationServiceUuid + ' and characteristic ' + listTrackedDevicesUuid );
-		var paramsObj = {"address": address, "serviceUuid": indoorLocalizationServiceUuid, "characteristicUuid": listTrackedDevicesUuid };
+		console.log("Read device list at service " + BleTypes.indoorLocalizationServiceUuid + ' and characteristic ' + BleTypes.listTrackedDevicesUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.indoorLocalizationServiceUuid, "characteristicUuid": BleTypes.listTrackedDevicesUuid };
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
@@ -1176,8 +1176,8 @@ var BleBase = function() {
 		}
 		u8[6] = rssi;
 		var v = bluetoothle.bytesToEncodedString(u8);
-		console.log("Write " + v + " at service " + indoorLocalizationServiceUuid + ' and characteristic ' + addTrackedDeviceUuid );
-		var paramsObj = {"address": address, "serviceUuid": indoorLocalizationServiceUuid, "characteristicUuid": addTrackedDeviceUuid , "value" : v};
+		console.log("Write " + v + " at service " + BleTypes.indoorLocalizationServiceUuid + ' and characteristic ' + BleTypes.addTrackedDeviceUuid );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.indoorLocalizationServiceUuid, "characteristicUuid": BleTypes.addTrackedDeviceUuid , "value" : v};
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					console.log('Successfully written to add tracked device characteristic - ' + obj.status);
