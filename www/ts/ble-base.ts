@@ -2,7 +2,13 @@
 /// <reference path="ble-utils.ts"/>
 
 declare var bluetoothle;
-declare var Navigator;
+//declare var navigator;
+
+class BleConfigurationMessage {
+	type : number;
+	length : number;
+	payload : Uint8Array;
+}
 
 var BleBase = function() {
 	var self = this;
@@ -245,7 +251,7 @@ var BleBase = function() {
 					// console.log('Found device, parse and call callback if company id == ' + dobotsCompanyId);
 					var arr = bluetoothle.encodedStringToBytes(obj.advertisement);
 					self.parseAdvertisement(arr, 0xFF, function(data) {
-						var companyId = byteArrayToUint16(data, 0);
+						var companyId = BleUtils.byteArrayToUint16(data, 0);
 						if (companyId == APPLE_COMPANY_ID) {
 							self.parseIBeaconData(obj, data);
 						}
@@ -288,8 +294,8 @@ var BleBase = function() {
 	}
 
 	self.parseAdvertisement = function(obj, search, callback) {
-		var start = 0;
-		var end = obj.length;
+		//var start = 0;
+		//var end = obj.length;
 		for (var i = 0; i < obj.length; ) {
 			var el_len = obj[i];
 			var el_type = obj[i+1];
@@ -319,7 +325,7 @@ var BleBase = function() {
 			obj.rssi = data[24];
 
 			// make signed
-			obj.rssi = unsignedToSignedByte(obj.rssi);
+			obj.rssi = BleUtils.unsignedToSignedByte(obj.rssi);
 		} else {
 			obj.isIBeacon = false;
 		}
@@ -392,7 +398,7 @@ var BleBase = function() {
 
 	self.closeDevice = function(address)
 	{
-		paramsObj = {"address": address};
+		var paramsObj = {"address": address};
 		bluetoothle.close(function(obj)	{ // close success
 				if (obj.status == "closed")
 				{
@@ -639,10 +645,11 @@ var BleBase = function() {
 	/* set floor to value
 	 */
 	self.setFloor = function(address, value, successCB, errorCB) {
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configFloorUuid;
 		configuration.length = 1;
-		configuration.payload = [value];
+		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -677,7 +684,8 @@ var BleBase = function() {
 			if (errorCB) errorCB(msg);
 		}
 
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configWifiUuid;
 		configuration.length = value.length; // TODO: should be u8.length?
 		configuration.payload = u8;
@@ -687,10 +695,11 @@ var BleBase = function() {
 
 	self.setBeaconMajor = function(address, value, successCB, errorCB) {
 		console.log("set major to " + value);
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configIBeaconMajorUuid;
 		configuration.length = 2;
-		configuration.payload = [value];
+		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -703,7 +712,7 @@ var BleBase = function() {
 					var msg = "Configuration value for major should have length 2";
 					if (errorCB) errorCB(msg);
 				} else {
-					var major = byteArrayToUint16(configuration.payload);
+					var major = BleUtils.byteArrayToUint16(configuration.payload, 0);
 					console.log("Major is set to: " + major);
 					if (successCB) successCB(major);
 				}
@@ -714,10 +723,11 @@ var BleBase = function() {
 
 	self.setBeaconMinor = function(address, value, successCB, errorCB) {
 		console.log("set minor to " + value);
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configIBeaconMinorUuid;
 		configuration.length = 2;
-		configuration.payload = [value];
+		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -730,7 +740,7 @@ var BleBase = function() {
 					var msg = "Configuration value for minor should have length 2";
 					if (errorCB) errorCB(msg);
 				} else {
-					var minor = byteArrayToUint16(configuration.payload);
+					var minor = BleUtils.byteArrayToUint16(configuration.payload, 0);
 					console.log("Minor is set to: " + minor);
 					if (successCB) successCB(minor);
 				}
@@ -741,10 +751,11 @@ var BleBase = function() {
 
 	self.setBeaconRssi = function(address, value, successCB, errorCB) {
 		console.log("set rssi to " + value);
-		var configuration = {};
-		configuration.type = configIBeaconRSSIUuid;
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
+		configuration.type = configIBeaconRssiUuid;
 		configuration.length = 1;
-		configuration.payload = [value];
+		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -757,7 +768,7 @@ var BleBase = function() {
 					var msg = "Configuration value for rssi should have length 1";
 					if (errorCB) errorCB(msg);
 				} else {
-					var rssi = unsignedToSignedByte(configuration.payload[0]);
+					var rssi = BleUtils.unsignedToSignedByte(configuration.payload[0]);
 					console.log("Rssi is set to: " + rssi);
 					if (successCB) successCB(rssi);
 				}
@@ -768,7 +779,8 @@ var BleBase = function() {
 
 	self.setBeaconUuid = function(address, value, successCB, errorCB) {
 		console.log("set uuid to " + value);
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configIBeaconUuidUuid;
 		configuration.payload = self.uuidToBytes(value);
 		configuration.length = configuration.payload.length;
@@ -795,7 +807,8 @@ var BleBase = function() {
 
 	self.setDeviceName = function(address, value, successCB, errorCB) {
 		console.log("set name to " + value);
-		var configuration = {};
+		//var configuration = {};
+		var configuration = new BleConfigurationMessage;
 		configuration.type = configNameUuid;
 		configuration.payload = bluetoothle.stringToBytes(value);
 		configuration.length = configuration.payload.length;
@@ -845,9 +858,10 @@ var BleBase = function() {
 			function(obj) { // read success
 				if (obj.status == "read") {
 					var bytearray = bluetoothle.encodedStringToBytes(obj.value);
-					var configuration = {};
+					//var configuration = {};
+					var configuration = new BleConfigurationMessage;
 					configuration.type = bytearray[0];
-					configuration.length = byteArrayToUint16(bytearray, 2);
+					configuration.length = BleUtils.byteArrayToUint16(bytearray, 2);
 					configuration.payload = new Uint8Array(configuration.length);
 					for (var i = 0; i < configuration.length; i++) {
 						configuration.payload[i] = bytearray[i+4];

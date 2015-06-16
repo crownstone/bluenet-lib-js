@@ -47,7 +47,7 @@ var configPWMFreqUuid                            = 0x05;
 var configIBeaconMajorUuid                       = 0x06;
 var configIBeaconMinorUuid                       = 0x07;
 var configIBeaconUuidUuid                        = 0x08;
-var configIBeaconRSSIUuid                        = 0x09;
+var configIBeaconRssiUuid                        = 0x09;
 var configWifiUuid                               = 0x0A;
 
 // Value set at reserved bytes for allignment

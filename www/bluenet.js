@@ -43,7 +43,7 @@ var configPWMFreqUuid = 0x05;
 var configIBeaconMajorUuid = 0x06;
 var configIBeaconMinorUuid = 0x07;
 var configIBeaconUuidUuid = 0x08;
-var configIBeaconRSSIUuid = 0x09;
+var configIBeaconRssiUuid = 0x09;
 var configWifiUuid = 0x0A;
 // Value set at reserved bytes for allignment
 var RESERVED = 0x00;
@@ -59,81 +59,89 @@ var IBEACON_ADVERTISEMENT_ID = 0x0215;
 /*
  * Conversions between uint8 array and uint16 or uint32
  */
-var uint16ToByteArray = function (value) {
-    var u8 = new Uint8Array(2);
-    u8[0] = (value >> 0 & 0xFF);
-    u8[1] = (value >> 8 & 0xFF);
-    return u8;
-};
-var uint32ToByteArray = function (value) {
-    var u8 = new Uint8Array(4);
-    u8[0] = (value >> 0 & 0xFF);
-    u8[1] = (value >> 8 & 0xFF);
-    u8[2] = (value >> 16 & 0xFF);
-    u8[3] = (value >> 24 & 0xFF);
-    return u8;
-};
-var byteArrayToUint32 = function (u8, startIndex) {
-    return (u8[startIndex + 3] << 24) + (u8[startIndex + 2] << 16) + (u8[startIndex + 1] << 8) + u8[startIndex];
-};
-var byteArrayToUint16 = function (u8, startIndex) {
-    return (u8[startIndex + 1] << 8) + u8[startIndex];
-};
-/*
- * Conversions between uint8 array and strings
- */
-/*
- * Conversions from number to hex string
- */
-/*
- * Conversions from hex strings to number array
- */
-var hexStringToByteArray = function (value) {
-    var strArr = [];
-    if (value.indexOf(':') > -1) {
-        strArr = value.split(':');
-    }
-    else if (value.indexOf('-') > -1) {
-        strArr = value.split('-');
-    }
-    else {
-        for (var i = 0; i < value.length / 2; i++) {
-            strArr[i] = value.slice(i * 2, i * 2 + 2);
+var BleUtils = {
+    uint16ToByteArray: function (value) {
+        var u8 = new Uint8Array(2);
+        u8[0] = (value >> 0 & 0xFF);
+        u8[1] = (value >> 8 & 0xFF);
+        return u8;
+    },
+    uint32ToByteArray: function (value) {
+        var u8 = new Uint8Array(4);
+        u8[0] = (value >> 0 & 0xFF);
+        u8[1] = (value >> 8 & 0xFF);
+        u8[2] = (value >> 16 & 0xFF);
+        u8[3] = (value >> 24 & 0xFF);
+        return u8;
+    },
+    byteArrayToUint32: function (u8, startIndex) {
+        return (u8[startIndex + 3] << 24) + (u8[startIndex + 2] << 16) + (u8[startIndex + 1] << 8) + u8[startIndex];
+    },
+    byteArrayToUint16: function (u8, startIndex) {
+        return (u8[startIndex + 1] << 8) + u8[startIndex];
+    },
+    /*
+     * Conversions between uint8 array and strings
+     */
+    /*
+     * Conversions from number to hex string
+     */
+    /*
+     * Conversions from hex strings to number array
+     */
+    hexStringToByteArray: function (value) {
+        var strArr = [];
+        if (value.indexOf(':') > -1) {
+            strArr = value.split(':');
         }
-    }
-    var arr = new Uint8Array(strArr.length);
-    for (var i = 0; i < strArr.length; i++) {
-        arr[i] = parseInt(strArr[i], 16);
-    }
-    return arr;
-};
-var byteArrayTohexString = function (value) {
-};
-/*
- * Conversion between hex string and bluetooth address
- */
-var hexStringToBluetoothAddress = function (value) {
-    var arrInv = hexStringToByteArray(value);
-    if (arrInv.length != 6) {
-        return new Uint8Array(0);
-    }
-    var arr = new Uint8Array(6);
-    for (var i = 0; i < 6; i++) {
-        arr[5 - i] = arrInv[i];
-    }
-    return arr;
-};
-var unsignedToSignedByte = function (value) {
-    // make signed
-    if (value > 127) {
-        return value - 256;
-    }
-    else {
-        return value;
+        else if (value.indexOf('-') > -1) {
+            strArr = value.split('-');
+        }
+        else {
+            for (var i = 0; i < value.length / 2; i++) {
+                strArr[i] = value.slice(i * 2, i * 2 + 2);
+            }
+        }
+        var arr = new Uint8Array(strArr.length);
+        for (var i = 0; i < strArr.length; i++) {
+            arr[i] = parseInt(strArr[i], 16);
+        }
+        return arr;
+    },
+    byteArrayTohexString: function (value) {
+    },
+    /*
+     * Conversion between hex string and bluetooth address
+     */
+    hexStringToBluetoothAddress: function (value) {
+        var arrInv = BleUtils.hexStringToByteArray(value);
+        if (arrInv.length != 6) {
+            return new Uint8Array(0);
+        }
+        var arr = new Uint8Array(6);
+        for (var i = 0; i < 6; i++) {
+            arr[5 - i] = arrInv[i];
+        }
+        return arr;
+    },
+    unsignedToSignedByte: function (value) {
+        // make signed
+        if (value > 127) {
+            return value - 256;
+        }
+        else {
+            return value;
+        }
     }
 };
 /// <reference path="ble-types.ts"/>
 /// <reference path="ble-utils.ts"/>
+//declare var navigator;
+var BleConfigurationMessage = (function () {
+    function BleConfigurationMessage() {
+    }
+    return BleConfigurationMessage;
+})();
 var BleBase = function () {
     var self = this;
     var addressKey = 'address';
@@ -345,7 +353,7 @@ var BleBase = function () {
                 // console.log('Found device, parse and call callback if company id == ' + dobotsCompanyId);
                 var arr = bluetoothle.encodedStringToBytes(obj.advertisement);
                 self.parseAdvertisement(arr, 0xFF, function (data) {
-                    var companyId = byteArrayToUint16(data, 0);
+                    var companyId = BleUtils.byteArrayToUint16(data, 0);
                     if (companyId == APPLE_COMPANY_ID) {
                         self.parseIBeaconData(obj, data);
                     }
@@ -385,8 +393,8 @@ var BleBase = function () {
         });
     };
     self.parseAdvertisement = function (obj, search, callback) {
-        var start = 0;
-        var end = obj.length;
+        //var start = 0;
+        //var end = obj.length;
         for (var i = 0; i < obj.length;) {
             var el_len = obj[i];
             var el_type = obj[i + 1];
@@ -416,7 +424,7 @@ var BleBase = function () {
             obj.minor = data[22] << 8 | data[23]; // big endian
             obj.rssi = data[24];
             // make signed
-            obj.rssi = unsignedToSignedByte(obj.rssi);
+            obj.rssi = BleUtils.unsignedToSignedByte(obj.rssi);
         }
         else {
             obj.isIBeacon = false;
@@ -480,7 +488,7 @@ var BleBase = function () {
         }, paramsObj);
     };
     self.closeDevice = function (address) {
-        paramsObj = { "address": address };
+        var paramsObj = { "address": address };
         bluetoothle.close(function (obj) {
             if (obj.status == "closed") {
                 console.log("Device " + obj.address + " closed");
@@ -655,10 +663,11 @@ var BleBase = function () {
     /* set floor to value
      */
     self.setFloor = function (address, value, successCB, errorCB) {
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configFloorUuid;
         configuration.length = 1;
-        configuration.payload = [value];
+        configuration.payload = new Uint8Array([value]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     /** Get a floor from the connected device
@@ -691,7 +700,8 @@ var BleBase = function () {
             if (errorCB)
                 errorCB(msg);
         }
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configWifiUuid;
         configuration.length = value.length; // TODO: should be u8.length?
         configuration.payload = u8;
@@ -700,10 +710,11 @@ var BleBase = function () {
     };
     self.setBeaconMajor = function (address, value, successCB, errorCB) {
         console.log("set major to " + value);
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configIBeaconMajorUuid;
         configuration.length = 2;
-        configuration.payload = [value];
+        configuration.payload = new Uint8Array([value]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     self.getBeaconMajor = function (address, successCB, errorCB) {
@@ -714,7 +725,7 @@ var BleBase = function () {
                     errorCB(msg);
             }
             else {
-                var major = byteArrayToUint16(configuration.payload);
+                var major = BleUtils.byteArrayToUint16(configuration.payload, 0);
                 console.log("Major is set to: " + major);
                 if (successCB)
                     successCB(major);
@@ -723,10 +734,11 @@ var BleBase = function () {
     };
     self.setBeaconMinor = function (address, value, successCB, errorCB) {
         console.log("set minor to " + value);
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configIBeaconMinorUuid;
         configuration.length = 2;
-        configuration.payload = [value];
+        configuration.payload = new Uint8Array([value]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     self.getBeaconMinor = function (address, successCB, errorCB) {
@@ -737,7 +749,7 @@ var BleBase = function () {
                     errorCB(msg);
             }
             else {
-                var minor = byteArrayToUint16(configuration.payload);
+                var minor = BleUtils.byteArrayToUint16(configuration.payload, 0);
                 console.log("Minor is set to: " + minor);
                 if (successCB)
                     successCB(minor);
@@ -746,10 +758,11 @@ var BleBase = function () {
     };
     self.setBeaconRssi = function (address, value, successCB, errorCB) {
         console.log("set rssi to " + value);
-        var configuration = {};
-        configuration.type = configIBeaconRSSIUuid;
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
+        configuration.type = configIBeaconRssiUuid;
         configuration.length = 1;
-        configuration.payload = [value];
+        configuration.payload = new Uint8Array([value]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     self.getBeaconRssi = function (address, successCB, errorCB) {
@@ -760,7 +773,7 @@ var BleBase = function () {
                     errorCB(msg);
             }
             else {
-                var rssi = unsignedToSignedByte(configuration.payload[0]);
+                var rssi = BleUtils.unsignedToSignedByte(configuration.payload[0]);
                 console.log("Rssi is set to: " + rssi);
                 if (successCB)
                     successCB(rssi);
@@ -769,7 +782,8 @@ var BleBase = function () {
     };
     self.setBeaconUuid = function (address, value, successCB, errorCB) {
         console.log("set uuid to " + value);
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configIBeaconUuidUuid;
         configuration.payload = self.uuidToBytes(value);
         configuration.length = configuration.payload.length;
@@ -792,7 +806,8 @@ var BleBase = function () {
     };
     self.setDeviceName = function (address, value, successCB, errorCB) {
         console.log("set name to " + value);
-        var configuration = {};
+        //var configuration = {};
+        var configuration = new BleConfigurationMessage;
         configuration.type = configNameUuid;
         configuration.payload = bluetoothle.stringToBytes(value);
         configuration.length = configuration.payload.length;
@@ -829,9 +844,10 @@ var BleBase = function () {
         bluetoothle.read(function (obj) {
             if (obj.status == "read") {
                 var bytearray = bluetoothle.encodedStringToBytes(obj.value);
-                var configuration = {};
+                //var configuration = {};
+                var configuration = new BleConfigurationMessage;
                 configuration.type = bytearray[0];
-                configuration.length = byteArrayToUint16(bytearray, 2);
+                configuration.length = BleUtils.byteArrayToUint16(bytearray, 2);
                 configuration.payload = new Uint8Array(configuration.length);
                 for (var i = 0; i < configuration.length; i++) {
                     configuration.payload[i] = bytearray[i + 4];
@@ -1782,5 +1798,9 @@ var BleExt = (function () {
 })();
 /// <reference path="ble-ext.ts"/>
 var exports = module.exports = {};
-exports.BleBase = BleBase;
-exports.BleExt = BleExt;
+Object.defineProperty(exports, "BleBase", BleBase);
+Object.defineProperty(exports, "BleState", BleState);
+Object.defineProperty(exports, "BleFilter", BleFilter);
+Object.defineProperty(exports, "BleDevice", BleDevice);
+Object.defineProperty(exports, "BleExt", BleExt);
+Object.defineProperty(exports, "BleUtils", BleUtils);

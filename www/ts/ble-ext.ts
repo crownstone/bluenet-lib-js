@@ -4,8 +4,6 @@
 /// <reference path="ble-base.ts"/>
 /// <reference path="ble-utils.ts"/>
 
-declare var BleBase;
-
 enum BleState {
 	uninitialized,
 	initialized,
