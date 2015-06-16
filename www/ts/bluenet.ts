@@ -12,21 +12,22 @@ declare var module;
 
 var bluenet = {};
 
-bluenet.BleBase = BleBase;
-bluenet.BleState = BleState;
-bluenet.BleDevice = BleDevice;
-bluenet.BleExt = BleExt;
-bluenet.BleUtils = BleUtils;
-bluenet.BleFilter = BleFilter;
+bluenet.Base = BleBase;
+bluenet.State = BleState;
+bluenet.Device = BleDevice;
+bluenet.Extended = BleExt;
+bluenet.Utils = BleUtils;
+bluenet.Filter = BleFilter;
 
-if (window) {
-	console.log("export to window");
-	window.BleBase = BleBase;
-	window.BleState = BleState;
-	window.BleDevice = BleDevice;
-	window.BleExt = BleExt;
-	window.BleUtils = BleUtils;
-	window.BleFilter = BleFilter;
-}
+// Dirty hack
+//if (window) {
+//	console.log("export to window");
+//	window.BleBase = BleBase;
+//	window.BleState = BleState;
+//	window.BleDevice = BleDevice;
+//	window.BleExt = BleExt;
+//	window.BleUtils = BleUtils;
+//	window.BleFilter = BleFilter;
+//}
 
 module.exports = bluenet;

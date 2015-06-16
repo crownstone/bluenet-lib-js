@@ -1805,19 +1805,20 @@ var BleExt = (function () {
 //Object.defineProperty(exports, "BleExt", BleExt);
 //Object.defineProperty(exports, "BleUtils", BleUtils);
 var bluenet = {};
-bluenet.BleBase = BleBase;
-bluenet.BleState = BleState;
-bluenet.BleDevice = BleDevice;
-bluenet.BleExt = BleExt;
-bluenet.BleUtils = BleUtils;
-bluenet.BleFilter = BleFilter;
-if (window) {
-    console.log("export to window");
-    window.BleBase = BleBase;
-    window.BleState = BleState;
-    window.BleDevice = BleDevice;
-    window.BleExt = BleExt;
-    window.BleUtils = BleUtils;
-    window.BleFilter = BleFilter;
-}
+bluenet.Base = BleBase;
+bluenet.State = BleState;
+bluenet.Device = BleDevice;
+bluenet.Extended = BleExt;
+bluenet.Utils = BleUtils;
+bluenet.Filter = BleFilter;
+// Dirty hack
+//if (window) {
+//	console.log("export to window");
+//	window.BleBase = BleBase;
+//	window.BleState = BleState;
+//	window.BleDevice = BleDevice;
+//	window.BleExt = BleExt;
+//	window.BleUtils = BleUtils;
+//	window.BleFilter = BleFilter;
+//}
 module.exports = bluenet;
