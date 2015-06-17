@@ -1,6 +1,6 @@
 {
   "name": "bluenet",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "homepage": "https://github.com/dobots/bluenet-lib-js",
   "description": "bluetooth le library for crownstones and dobeacons",
   "main": ".www/bluenet.js",
