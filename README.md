@@ -10,3 +10,11 @@ compile library with:
 clean library with
 
 	make clean
+
+# Installation
+
+# Bower
+
+To install the plugin using bower call
+
+	bower install bluenet

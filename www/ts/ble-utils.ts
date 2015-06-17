@@ -1,4 +1,3 @@
-
 /*
  * Conversions between uint8 array and uint16 or uint32
  */
@@ -82,6 +81,9 @@ var BleUtils = {
 		return arr;
 	},
 
+	/*
+	 * Convert an unsigned byte to signed byte
+	 */
 	unsignedToSignedByte : function(value) {
 		// make signed
 		if (value > 127) {
@@ -89,6 +91,48 @@ var BleUtils = {
 		} else {
 			return value;
 		}
+	},
+
+	/*
+	 * Convert an unsigned byte to 2 digit hex string
+	 */
+	uint8toHexString : function(nbr) {
+		var str = nbr.toString(16);
+		return str.length < 2 ? '0' + str : str;
+	},
+
+	/*
+	 * Convert a byte array to uuid string
+	 */
+	bytesToUuid : function(bytes) {
+		var separatorList = [4, 6, 8, 10];
+		var uuid = "";
+		for (var i = 0; i < bytes.length; ++i) {
+			if (separatorList.indexOf(i) >= 0) {
+				uuid += "-";
+			}
+			uuid += BleUtils.uint8toHexString(bytes[i]);
+		}
+		return uuid;
+	},
+
+	/*
+	 * Convert a uuid string to byte array
+	 */
+	uuidToBytes : function(uuid) {
+
+		if (uuid.length != 16*2 + 4) return new Uint8Array(0);
+
+		var bytes = [];
+		for (var i = 0; i < uuid.length; ) {
+			if (uuid[i] != '-') {
+				bytes.push(parseInt(uuid[i] + uuid[i+1], 16));
+				i+=2;
+			} else {
+				i++;
+			}
+		}
+		return new Uint8Array(bytes);
 	},
 
 };

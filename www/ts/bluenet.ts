@@ -10,14 +10,27 @@ declare var module;
 //Object.defineProperty(exports, "BleExt", BleExt);
 //Object.defineProperty(exports, "BleUtils", BleUtils);
 
+interface Bluenet {
+	BleBase: any;
+	BleState: any;
+	BleDevice: any;
+	BleExt: any;
+	BleUtils: any;
+	BleFilter: any;
+	BleTypes: any;
+}
+
+interface Window extends Bluenet {}
+
 // Proper export
-var bluenet = {};
-bluenet.Base = BleBase;
-bluenet.State = BleState;
-bluenet.Device = BleDevice;
-bluenet.Extended = BleExt;
-bluenet.Utils = BleUtils;
-bluenet.Filter = BleFilter;
+// var bluenet = new Bluenet();
+var bluenet : Bluenet = <Bluenet>{};
+bluenet.BleBase = BleBase;
+bluenet.BleState = BleState;
+bluenet.BleDevice = BleDevice;
+bluenet.BleExt = BleExt;
+bluenet.BleUtils = BleUtils;
+bluenet.BleFilter = BleFilter;
 bluenet.BleTypes = BleTypes;
 module.exports = bluenet;
 

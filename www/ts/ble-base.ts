@@ -4,6 +4,8 @@
 declare var bluetoothle;
 //declare var navigator;
 
+interface Navigator { notification: any; }
+
 class BleConfigurationMessage {
 	type : number;
 	length : number;
@@ -319,51 +321,14 @@ var BleBase = function() {
 		var advertisementId = data[2] << 8 | data[3]; // big endian
 		if (companyId == BleTypes.APPLE_COMPANY_ID && advertisementId == BleTypes.IBEACON_ADVERTISEMENT_ID) {
 			obj.isIBeacon = true;
-			obj.uuid = self.bytesToUuid(data.subarray(4, 20));
+			obj.proximityUuid = BleUtils.bytesToUuid(data.subarray(4, 20));
 			obj.major = data[20] << 8 | data[21]; // big endian
 			obj.minor = data[22] << 8 | data[23]; // big endian
-			obj.rssi = data[24];
-
 			// make signed
-			obj.rssi = BleUtils.unsignedToSignedByte(obj.rssi);
+			obj.txPower = BleUtils.unsignedToSignedByte(data[24]);
 		} else {
 			obj.isIBeacon = false;
 		}
-	}
-
-
-	// TODO: move this to ble-utils
-	self.uint8toString = function(nbr) {
-		var str = nbr.toString(16);
-		return str.length < 2 ? '0' + str : str;
-	};
-
-	self.bytesToUuid = function(bytes) {
-		var separatorList = [4, 6, 8, 10];
-		var uuid = "";
-		for (var i = 0; i < bytes.length; ++i) {
-			if (separatorList.indexOf(i) >= 0) {
-				uuid += "-";
-			}
-			uuid += self.uint8toString(bytes[i]);
-		}
-		return uuid;
-	}
-
-	self.uuidToBytes = function(uuid) {
-
-		if (uuid.length != 16*2 + 4) return [];
-
-		var bytes = [];
-		for (var i = 0; i < uuid.length; ) {
-			if (uuid[i] != '-') {
-				bytes.push(parseInt(uuid[i] + uuid[i+1], 16));
-				i+=2;
-			} else {
-				i++;
-			}
-		}
-		return bytes;
 	}
 
 	/*
@@ -699,7 +664,7 @@ var BleBase = function() {
 		var configuration = new BleConfigurationMessage;
 		configuration.type = BleTypes.configIBeaconMajorUuid;
 		configuration.length = 2;
-		configuration.payload = new Uint8Array([value]);
+		configuration.payload = BleUtils.uint16ToByteArray(value);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -727,7 +692,7 @@ var BleBase = function() {
 		var configuration = new BleConfigurationMessage;
 		configuration.type = BleTypes.configIBeaconMinorUuid;
 		configuration.length = 2;
-		configuration.payload = new Uint8Array([value]);
+		configuration.payload = BleUtils.uint16ToByteArray(value);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
@@ -782,7 +747,7 @@ var BleBase = function() {
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
 		configuration.type = BleTypes.configIBeaconUuidUuid;
-		configuration.payload = self.uuidToBytes(value);
+		configuration.payload = BleUtils.uuidToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
@@ -796,7 +761,7 @@ var BleBase = function() {
 					var msg = "Configuration value for uuid should have length 16";
 					if (errorCB) errorCB(msg);
 				} else {
-					var uuid = self.bytesToUuid(configuration.payload);
+					var uuid = BleUtils.bytesToUuid(configuration.payload);
 					console.log("Uuid is set to: " + uuid);
 					if (successCB) successCB(uuid);
 				}

@@ -125,6 +125,9 @@ var BleUtils = {
         }
         return arr;
     },
+    /*
+     * Convert an unsigned byte to signed byte
+     */
     unsignedToSignedByte: function (value) {
         // make signed
         if (value > 127) {
@@ -133,11 +136,49 @@ var BleUtils = {
         else {
             return value;
         }
+    },
+    /*
+     * Convert an unsigned byte to 2 digit hex string
+     */
+    uint8toHexString: function (nbr) {
+        var str = nbr.toString(16);
+        return str.length < 2 ? '0' + str : str;
+    },
+    /*
+     * Convert a byte array to uuid string
+     */
+    bytesToUuid: function (bytes) {
+        var separatorList = [4, 6, 8, 10];
+        var uuid = "";
+        for (var i = 0; i < bytes.length; ++i) {
+            if (separatorList.indexOf(i) >= 0) {
+                uuid += "-";
+            }
+            uuid += BleUtils.uint8toHexString(bytes[i]);
+        }
+        return uuid;
+    },
+    /*
+     * Convert a uuid string to byte array
+     */
+    uuidToBytes: function (uuid) {
+        if (uuid.length != 16 * 2 + 4)
+            return new Uint8Array(0);
+        var bytes = [];
+        for (var i = 0; i < uuid.length;) {
+            if (uuid[i] != '-') {
+                bytes.push(parseInt(uuid[i] + uuid[i + 1], 16));
+                i += 2;
+            }
+            else {
+                i++;
+            }
+        }
+        return new Uint8Array(bytes);
     }
 };
 /// <reference path="ble-types.ts"/>
 /// <reference path="ble-utils.ts"/>
-//declare var navigator;
 var BleConfigurationMessage = (function () {
     function BleConfigurationMessage() {
     }
@@ -420,47 +461,15 @@ var BleBase = function () {
         var advertisementId = data[2] << 8 | data[3]; // big endian
         if (companyId == BleTypes.APPLE_COMPANY_ID && advertisementId == BleTypes.IBEACON_ADVERTISEMENT_ID) {
             obj.isIBeacon = true;
-            obj.uuid = self.bytesToUuid(data.subarray(4, 20));
+            obj.proximityUuid = BleUtils.bytesToUuid(data.subarray(4, 20));
             obj.major = data[20] << 8 | data[21]; // big endian
             obj.minor = data[22] << 8 | data[23]; // big endian
-            obj.rssi = data[24];
             // make signed
-            obj.rssi = BleUtils.unsignedToSignedByte(obj.rssi);
+            obj.txPower = BleUtils.unsignedToSignedByte(data[24]);
         }
         else {
             obj.isIBeacon = false;
         }
-    };
-    // TODO: move this to ble-utils
-    self.uint8toString = function (nbr) {
-        var str = nbr.toString(16);
-        return str.length < 2 ? '0' + str : str;
-    };
-    self.bytesToUuid = function (bytes) {
-        var separatorList = [4, 6, 8, 10];
-        var uuid = "";
-        for (var i = 0; i < bytes.length; ++i) {
-            if (separatorList.indexOf(i) >= 0) {
-                uuid += "-";
-            }
-            uuid += self.uint8toString(bytes[i]);
-        }
-        return uuid;
-    };
-    self.uuidToBytes = function (uuid) {
-        if (uuid.length != 16 * 2 + 4)
-            return [];
-        var bytes = [];
-        for (var i = 0; i < uuid.length;) {
-            if (uuid[i] != '-') {
-                bytes.push(parseInt(uuid[i] + uuid[i + 1], 16));
-                i += 2;
-            }
-            else {
-                i++;
-            }
-        }
-        return bytes;
     };
     /*
      * Contains bug: when a device is in "disconnecting" state, it will never be closed.
@@ -715,7 +724,7 @@ var BleBase = function () {
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.configIBeaconMajorUuid;
         configuration.length = 2;
-        configuration.payload = new Uint8Array([value]);
+        configuration.payload = BleUtils.uint16ToByteArray(value);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     self.getBeaconMajor = function (address, successCB, errorCB) {
@@ -739,7 +748,7 @@ var BleBase = function () {
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.configIBeaconMinorUuid;
         configuration.length = 2;
-        configuration.payload = new Uint8Array([value]);
+        configuration.payload = BleUtils.uint16ToByteArray(value);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     self.getBeaconMinor = function (address, successCB, errorCB) {
@@ -786,7 +795,7 @@ var BleBase = function () {
         //var configuration = {};
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.configIBeaconUuidUuid;
-        configuration.payload = self.uuidToBytes(value);
+        configuration.payload = BleUtils.uuidToBytes(value);
         configuration.length = configuration.payload.length;
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
@@ -798,7 +807,7 @@ var BleBase = function () {
                     errorCB(msg);
             }
             else {
-                var uuid = self.bytesToUuid(configuration.payload);
+                var uuid = BleUtils.bytesToUuid(configuration.payload);
                 console.log("Uuid is set to: " + uuid);
                 if (successCB)
                     successCB(uuid);
@@ -1798,21 +1807,17 @@ var BleExt = (function () {
     return BleExt;
 })();
 /// <reference path="ble-ext.ts"/>
-//var exports = module.exports = {};
-//Object.defineProperty(exports, "BleBase", BleBase);
-//Object.defineProperty(exports, "BleState", BleState);
-//Object.defineProperty(exports, "BleFilter",BleFilter);
-//Object.defineProperty(exports, "BleDevice", BleDevice);
-//Object.defineProperty(exports, "BleExt", BleExt);
-//Object.defineProperty(exports, "BleUtils", BleUtils);
+/// <reference path="ble-base.ts"/>
+/// <reference path="ble-utils.ts"/>
 // Proper export
+// var bluenet = new Bluenet();
 var bluenet = {};
-bluenet.Base = BleBase;
-bluenet.State = BleState;
-bluenet.Device = BleDevice;
-bluenet.Extended = BleExt;
-bluenet.Utils = BleUtils;
-bluenet.Filter = BleFilter;
+bluenet.BleBase = BleBase;
+bluenet.BleState = BleState;
+bluenet.BleDevice = BleDevice;
+bluenet.BleExt = BleExt;
+bluenet.BleUtils = BleUtils;
+bluenet.BleFilter = BleFilter;
 bluenet.BleTypes = BleTypes;
 module.exports = bluenet;
 // Dirty hack to avoid class functions not being able to find other classes
