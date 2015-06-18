@@ -729,7 +729,7 @@ var BleBase = function() {
 	/*
 	 * Get the calibrated rssi at 1m of the beacon
 	 */
-	self.setBeaconRssi = function(address, value, successCB, errorCB) {
+	self.setBeaconCalibratedRssi = function(address, value, successCB, errorCB) {
 		console.log("set rssi to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
@@ -742,7 +742,7 @@ var BleBase = function() {
 	/*
 	 * Set the calibrated rssi at 1 m of the beacon
 	 */
-	self.getBeaconRssi = function(address, successCB, errorCB) {
+	self.getBeaconCalibratedRssi = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
 			BleTypes.CONFIG_TYPE_IBEACON_RSSI,
@@ -763,8 +763,8 @@ var BleBase = function() {
 	/*
 	 * Set the proximity UUID of the beacon
 	 */
-	self.setBeaconUuid = function(address, value, successCB, errorCB) {
-		console.log("set uuid to " + value);
+	self.setBeaconProximityUuid = function(address, value, successCB, errorCB) {
+		console.log("set proximity uuid to " + value);
 		//var configuration = {};
 		var configuration = new BleConfigurationMessage;
 		configuration.type = BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID;
@@ -776,13 +776,13 @@ var BleBase = function() {
 	/*
 	 * Get the proximity UUID of the beacon
 	 */
-	self.getBeaconUuid = function(address, successCB, errorCB) {
+	self.getBeaconProximityUuid = function(address, successCB, errorCB) {
 		self.getConfiguration(
 			address,
 			BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID,
 			function(configuration) {
 				if (configuration.length > 16) {
-					var msg = "Configuration value for uuid should have length 16";
+					var msg = "Configuration value for proximity uuid should have length 16";
 					if (errorCB) errorCB(msg);
 				} else {
 					var uuid = BleUtils.bytesToUuid(configuration.payload);

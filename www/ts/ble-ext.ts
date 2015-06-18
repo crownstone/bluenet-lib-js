@@ -569,52 +569,52 @@ class BleExt {
 		this.ble.setBeaconMinor(this.targetAddress, value, successCB, errorCB);
 	}
 
-	readBeaconUuid(successCB, errorCB) {
+	readBeaconProximityUuid(successCB, errorCB) {
 		if (!this.hasConfigurationCharacteristics()) {
 			if (errorCB) errorCB();
 			return;
 		}
-		this.ble.getBeaconUuid(this.targetAddress, successCB, errorCB);
+		this.ble.getBeaconProximityUuid(this.targetAddress, successCB, errorCB);
 	}
 
-	writeBeaconUuid(value, successCB, errorCB) {
+	writeBeaconProximityUuid(value, successCB, errorCB) {
 		if (!this.hasConfigurationCharacteristics()) {
 			if (errorCB) errorCB();
 			return;
 		}
-		this.ble.setBeaconUuid(this.targetAddress, value, successCB, errorCB);
+		this.ble.setBeaconProximityUuid(this.targetAddress, value, successCB, errorCB);
 	}
 
-	readBeaconRssi(successCB, errorCB) {
+	readBeaconCalibratedRssi(successCB, errorCB) {
 		if (!this.hasConfigurationCharacteristics()) {
 			if (errorCB) errorCB();
 			return;
 		}
-		this.ble.getBeaconRssi(this.targetAddress, successCB, errorCB);
+		this.ble.getBeaconCalibratedRssi(this.targetAddress, successCB, errorCB);
 	}
 
-	writeBeaconRssi(value, successCB, errorCB) {
+	writeBeaconCalibratedRssi(value, successCB, errorCB) {
 		if (!this.hasConfigurationCharacteristics()) {
 			if (errorCB) errorCB();
 			return;
 		}
-		this.ble.setBeaconRssi(this.targetAddress, value, successCB, errorCB);
+		this.ble.setBeaconCalibratedRssi(this.targetAddress, value, successCB, errorCB);
 	}
 
 	readDeviceType(successCB, errorCB) {
-		// if (!this.hasConfigurationCharacteristics()) {
-		// 	if (errorCB) errorCB();
-		// 	return;
-		// }
-		// this.ble.getDeviceType(this.targetAddress, successCB, errorCB);
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getDeviceType(this.targetAddress, successCB, errorCB);
 	}
 
 	writeDeviceType(value, successCB, errorCB) {
-		// if (!this.hasConfigurationCharacteristics()) {
-		// 	if (errorCB) errorCB();
-		// 	return;
-		// }
-		// this.ble.setDeviceType(this.targetAddress, value, successCB, errorCB);
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setDeviceType(this.targetAddress, value, successCB, errorCB);
 	}
 
 	readFloor(successCB, errorCB) {
@@ -634,19 +634,19 @@ class BleExt {
 	}
 
 	readRoom(successCB, errorCB) {
-		// if (!this.hasConfigurationCharacteristics()) {
-		// 	if (errorCB) errorCB();
-		// 	return;
-		// }
-		// this.ble.getRoom(this.targetAddress, successCB, errorCB);
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getRoom(this.targetAddress, successCB, errorCB);
 	}
 
 	writeRoom(value, successCB, errorCB) {
-		// if (!this.hasConfigurationCharacteristics()) {
-		// 	if (errorCB) errorCB();
-		// 	return;
-		// }
-		// this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
 	}
 
 	// TODO: value should be an object with ssid and pw

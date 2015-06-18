@@ -786,7 +786,7 @@ var BleBase = function () {
     /*
      * Get the calibrated rssi at 1m of the beacon
      */
-    self.setBeaconRssi = function (address, value, successCB, errorCB) {
+    self.setBeaconCalibratedRssi = function (address, value, successCB, errorCB) {
         console.log("set rssi to " + value);
         //var configuration = {};
         var configuration = new BleConfigurationMessage;
@@ -798,7 +798,7 @@ var BleBase = function () {
     /*
      * Set the calibrated rssi at 1 m of the beacon
      */
-    self.getBeaconRssi = function (address, successCB, errorCB) {
+    self.getBeaconCalibratedRssi = function (address, successCB, errorCB) {
         self.getConfiguration(address, BleTypes.CONFIG_TYPE_IBEACON_RSSI, function (configuration) {
             if (configuration.length > 1) {
                 var msg = "Configuration value for rssi should have length 1";
@@ -816,8 +816,8 @@ var BleBase = function () {
     /*
      * Set the proximity UUID of the beacon
      */
-    self.setBeaconUuid = function (address, value, successCB, errorCB) {
-        console.log("set uuid to " + value);
+    self.setBeaconProximityUuid = function (address, value, successCB, errorCB) {
+        console.log("set proximity uuid to " + value);
         //var configuration = {};
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID;
@@ -828,10 +828,10 @@ var BleBase = function () {
     /*
      * Get the proximity UUID of the beacon
      */
-    self.getBeaconUuid = function (address, successCB, errorCB) {
+    self.getBeaconProximityUuid = function (address, successCB, errorCB) {
         self.getConfiguration(address, BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID, function (configuration) {
             if (configuration.length > 16) {
-                var msg = "Configuration value for uuid should have length 16";
+                var msg = "Configuration value for proximity uuid should have length 16";
                 if (errorCB)
                     errorCB(msg);
             }
@@ -1673,51 +1673,53 @@ var BleExt = (function () {
         }
         this.ble.setBeaconMinor(this.targetAddress, value, successCB, errorCB);
     };
-    BleExt.prototype.readBeaconUuid = function (successCB, errorCB) {
+    BleExt.prototype.readBeaconProximityUuid = function (successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
             if (errorCB)
                 errorCB();
             return;
         }
-        this.ble.getBeaconUuid(this.targetAddress, successCB, errorCB);
+        this.ble.getBeaconProximityUuid(this.targetAddress, successCB, errorCB);
     };
-    BleExt.prototype.writeBeaconUuid = function (value, successCB, errorCB) {
+    BleExt.prototype.writeBeaconProximityUuid = function (value, successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
             if (errorCB)
                 errorCB();
             return;
         }
-        this.ble.setBeaconUuid(this.targetAddress, value, successCB, errorCB);
+        this.ble.setBeaconProximityUuid(this.targetAddress, value, successCB, errorCB);
     };
-    BleExt.prototype.readBeaconRssi = function (successCB, errorCB) {
+    BleExt.prototype.readBeaconCalibratedRssi = function (successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
             if (errorCB)
                 errorCB();
             return;
         }
-        this.ble.getBeaconRssi(this.targetAddress, successCB, errorCB);
+        this.ble.getBeaconCalibratedRssi(this.targetAddress, successCB, errorCB);
     };
-    BleExt.prototype.writeBeaconRssi = function (value, successCB, errorCB) {
+    BleExt.prototype.writeBeaconCalibratedRssi = function (value, successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
             if (errorCB)
                 errorCB();
             return;
         }
-        this.ble.setBeaconRssi(this.targetAddress, value, successCB, errorCB);
+        this.ble.setBeaconCalibratedRssi(this.targetAddress, value, successCB, errorCB);
     };
     BleExt.prototype.readDeviceType = function (successCB, errorCB) {
-        // if (!this.hasConfigurationCharacteristics()) {
-        // 	if (errorCB) errorCB();
-        // 	return;
-        // }
-        // this.ble.getDeviceType(this.targetAddress, successCB, errorCB);
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getDeviceType(this.targetAddress, successCB, errorCB);
     };
     BleExt.prototype.writeDeviceType = function (value, successCB, errorCB) {
-        // if (!this.hasConfigurationCharacteristics()) {
-        // 	if (errorCB) errorCB();
-        // 	return;
-        // }
-        // this.ble.setDeviceType(this.targetAddress, value, successCB, errorCB);
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setDeviceType(this.targetAddress, value, successCB, errorCB);
     };
     BleExt.prototype.readFloor = function (successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
@@ -1736,18 +1738,20 @@ var BleExt = (function () {
         this.ble.setFloor(this.targetAddress, value, successCB, errorCB);
     };
     BleExt.prototype.readRoom = function (successCB, errorCB) {
-        // if (!this.hasConfigurationCharacteristics()) {
-        // 	if (errorCB) errorCB();
-        // 	return;
-        // }
-        // this.ble.getRoom(this.targetAddress, successCB, errorCB);
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getRoom(this.targetAddress, successCB, errorCB);
     };
     BleExt.prototype.writeRoom = function (value, successCB, errorCB) {
-        // if (!this.hasConfigurationCharacteristics()) {
-        // 	if (errorCB) errorCB();
-        // 	return;
-        // }
-        // this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
     };
     // TODO: value should be an object with ssid and pw
     BleExt.prototype.writeWifi = function (value, successCB, errorCB) {
