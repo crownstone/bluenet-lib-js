@@ -470,7 +470,7 @@ var BleBase = function () {
             obj.major = data[20] << 8 | data[21]; // big endian
             obj.minor = data[22] << 8 | data[23]; // big endian
             // make signed
-            obj.txPower = BleUtils.unsignedToSignedByte(data[24]);
+            obj.calibratedRssi = BleUtils.unsignedToSignedByte(data[24]);
         }
         else {
             obj.isIBeacon = false;
