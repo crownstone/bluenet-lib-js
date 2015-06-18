@@ -362,7 +362,7 @@ class BleExt {
 	}
 
 	writePWM(pwm, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.pwmUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -378,7 +378,7 @@ class BleExt {
 	}
 
 	readPWM(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.pwmUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -408,8 +408,8 @@ class BleExt {
 	}
 
 	readCurrentConsumption(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.sampleCurrentUuid) ||
-			!this.characteristics.hasOwnProperty(BleTypes.currentConsumptionUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+			!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -429,8 +429,8 @@ class BleExt {
 	}
 
 	readCurrentCurve(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.sampleCurrentUuid) ||
-			!this.characteristics.hasOwnProperty(BleTypes.currentCurveUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+			!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CURVE_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -450,7 +450,7 @@ class BleExt {
 	}
 
 	writeCurrentLimit(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.currentLimitUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -459,7 +459,7 @@ class BleExt {
 	}
 
 	readCurrentLimit(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.currentLimitUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -472,7 +472,7 @@ class BleExt {
 	/////////////////////
 
 	readTemperature(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.temperatureCharacteristicUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -480,7 +480,7 @@ class BleExt {
 	}
 
 	writeMeshMessage(obj, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.meshCharacteristicUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_MESH_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -489,13 +489,13 @@ class BleExt {
 	}
 
 	hasConfigurationCharacteristics() {
-		return this.characteristics.hasOwnProperty(BleTypes.selectConfigurationCharacteristicUuid) &&
-			this.characteristics.hasOwnProperty(BleTypes.getConfigurationCharacteristicUuid) &&
-			this.characteristics.hasOwnProperty(BleTypes.setConfigurationCharacteristicUuid);
+		return this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) &&
+			this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID) &&
+			this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID);
 	}
 
 	writeConfiguration(obj, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.setConfigurationCharacteristicUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
 			return;
 		}
 		console.log("Set config");
@@ -510,8 +510,8 @@ class BleExt {
 	}
 
 	readConfiguration(configurationType, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.selectConfigurationCharacteristicUuid) ||
-			!this.characteristics.hasOwnProperty(BleTypes.getConfigurationCharacteristicUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
+			!this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
 			console.log("Missing characteristic UUID");
 			if (errorCB) errorCB();
 			return;
@@ -651,7 +651,7 @@ class BleExt {
 
 	// TODO: value should be an object with ssid and pw
 	writeWifi(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.setConfigurationCharacteristicUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -664,7 +664,7 @@ class BleExt {
 		//function func(successCB, errorCB) {
 		//	this.writeWifi(value, successCB, errorCB);
 		//}
-		//this.connectExecuteAndDisconnect(address, generalServiceUuid, setConfigurationCharacteristicUuid, func.bind(this), successCB, errorCB);
+		//this.connectExecuteAndDisconnect(address, GENERAL_SERVICE_UUID, CHAR_SET_CONFIGURATION_UUID, func.bind(this), successCB, errorCB);
 		var self = this;
 		function func(successCB, errorCB) {
 			self.writeWifi(value, successCB, errorCB);
@@ -673,10 +673,10 @@ class BleExt {
 	}
 
 	readIp(successCB, errorCB) {
-		this.readConfiguration(BleTypes.configWifiUuid, successCB, errorCB);
+		this.readConfiguration(BleTypes.CONFIG_TYPE_WIFI, successCB, errorCB);
 	}
 
-	// TODO: should we also discover selectConfigurationCharacteristicUuid ? Seems like we're just lucky now.
+	// TODO: should we also discover CHAR_SELECT_CONFIGURATION_UUID ? Seems like we're just lucky now.
 	connectAndReadIp(address, successCB, errorCB) {
 		var self = this;
 		function func(successCB, errorCB) {
@@ -690,7 +690,7 @@ class BleExt {
 	//////////////////////////
 
 	readTrackedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.deviceListUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -698,7 +698,7 @@ class BleExt {
 	}
 
 	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.addTrackedDeviceUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -706,7 +706,7 @@ class BleExt {
 	}
 
 	readScannedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.deviceListUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
@@ -714,7 +714,7 @@ class BleExt {
 	}
 
 	writeScanDevices(scan : boolean, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.deviceScanUuid)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_SCAN_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}

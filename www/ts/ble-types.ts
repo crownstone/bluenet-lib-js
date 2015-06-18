@@ -1,69 +1,73 @@
 var BleTypes = {
 
-//////////////////////////////////////////////////////////////////////////////
-// Indoor Localization Service
-	indoorLocalizationServiceUuid: '7e170000-429c-41aa-83d7-d91220abeb33',
-// Indoor Localization Service - Characteristics
-	rssiUuid: '7e170001-429c-41aa-83d7-d91220abeb33',
-	addTrackedDeviceUuid: '7e170002-429c-41aa-83d7-d91220abeb33',
-	deviceScanUuid: '7e170003-429c-41aa-83d7-d91220abeb33',
-	deviceListUuid: '7e170004-429c-41aa-83d7-d91220abeb33',
-	listTrackedDevicesUuid: '7e170005-429c-41aa-83d7-d91220abeb33',
-//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	// Indoor Localization Service
+	INDOOR_LOCALIZATION_SERVICE_UUID:       '7e170000-429c-41aa-83d7-d91220abeb33',
+	// Indoor Localization Service - Characteristics
+	CHAR_RSSI_UUID:                         '7e170001-429c-41aa-83d7-d91220abeb33',
+	CHAR_ADD_TRACKED_DEVICE_UUID:           '7e170002-429c-41aa-83d7-d91220abeb33',
+	CHAR_DEVICE_SCAN_UUID:                  '7e170003-429c-41aa-83d7-d91220abeb33',
+	CHAR_DEVICE_LIST_UUID:                  '7e170004-429c-41aa-83d7-d91220abeb33',
+	CHAR_LIST_TRACKED_DEVICES_UUID:         '7e170005-429c-41aa-83d7-d91220abeb33',
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// General Service
-	generalServiceUuid: 'f5f90000-59f9-11e4-aa15-123b93f75cba',
-// General Service - Characteristics
-	temperatureCharacteristicUuid: 'f5f90001-59f9-11e4-aa15-123b93f75cba',
-	changeNameCharacteristicUuid: 'f5f90002-59f9-11e4-aa15-123b93f75cba',
-	deviceTypeUuid: 'f5f90003-59f9-11e4-aa15-123b93f75cba',
-	roomUuid: 'f5f90004-59f9-11e4-aa15-123b93f75cba',
-	resetCharacteristicUuid: 'f5f90005-59f9-11e4-aa15-123b93f75cba',
-	meshCharacteristicUuid: 'f5f90006-59f9-11e4-aa15-123b93f75cba',
-	setConfigurationCharacteristicUuid: 'f5f90007-59f9-11e4-aa15-123b93f75cba',
-	selectConfigurationCharacteristicUuid: 'f5f90008-59f9-11e4-aa15-123b93f75cba',
-	getConfigurationCharacteristicUuid: 'f5f90009-59f9-11e4-aa15-123b93f75cba',
+	//////////////////////////////////////////////////////////////////////////////
+	// General Service
+	GENERAL_SERVICE_UUID:                   'f5f90000-59f9-11e4-aa15-123b93f75cba',
+	// General Service - Characteristics
+	CHAR_TEMPERATURE_UUID:                  'f5f90001-59f9-11e4-aa15-123b93f75cba',
+	// unused                               'f5f90002-59f9-11e4-aa15-123b93f75cba',
+	// unused                               'f5f90003-59f9-11e4-aa15-123b93f75cba',
+	// unused                               'f5f90004-59f9-11e4-aa15-123b93f75cba',
+	CHAR_RESET_UUID:                        'f5f90005-59f9-11e4-aa15-123b93f75cba',
+	CHAR_MESH_UUID:                         'f5f90006-59f9-11e4-aa15-123b93f75cba',
+	CHAR_SET_CONFIGURATION_UUID:            'f5f90007-59f9-11e4-aa15-123b93f75cba',
+	CHAR_SELECT_CONFIGURATION_UUID:         'f5f90008-59f9-11e4-aa15-123b93f75cba',
+	CHAR_GET_CONFIGURATION_UUID:            'f5f90009-59f9-11e4-aa15-123b93f75cba',
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	// Power Service
+	POWER_SERVICE_UUID:                     '5b8d0000-6f20-11e4-b116-123b93f75cba',
+	// Power Service - Characteristics
+	CHAR_PWM_UUID:                          '5b8d0001-6f20-11e4-b116-123b93f75cba',
+	CHAR_SAMPLE_CURRENT_UUID:               '5b8d0002-6f20-11e4-b116-123b93f75cba',
+	CHAR_CURRENT_CURVE_UUID:                '5b8d0003-6f20-11e4-b116-123b93f75cba',
+	CHAR_CURRENT_CONSUMPTION_UUID:          '5b8d0004-6f20-11e4-b116-123b93f75cba',
+	CHAR_CURRENT_LIMIT_UUID:                '5b8d0005-6f20-11e4-b116-123b93f75cba',
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// Power Service
-	powerServiceUuid: '5b8d0000-6f20-11e4-b116-123b93f75cba',
-// Power Service - Characteristics
-	pwmUuid: '5b8d0001-6f20-11e4-b116-123b93f75cba',
-	sampleCurrentUuid: '5b8d0002-6f20-11e4-b116-123b93f75cba',
-	currentCurveUuid: '5b8d0003-6f20-11e4-b116-123b93f75cba',
-	currentConsumptionUuid: '5b8d0004-6f20-11e4-b116-123b93f75cba',
-	currentLimitUuid: '5b8d0005-6f20-11e4-b116-123b93f75cba',
-//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	// Configuration types
+	CONFIG_TYPE_NAME:                       0x00,
+	CONFIG_TYPE_DEVICE_TYPE:                0x01,
+	CONFIG_TYPE_ROOM:                       0x02,
+	CONFIG_TYPE_FLOOR:                      0x03,
+	CONFIG_TYPE_NEARBY_TIMEOUT:             0x04,
+	CONFIG_TYPE_PWM_FREQUENCY:              0x05,
+	CONFIG_TYPE_IBEACON_MAJOR:              0x06,
+	CONFIG_TYPE_IBEACON_MINOR:              0x07,
+	CONFIG_TYPE_IBEACON_PROXIMITY_UUID:     0x08,
+	CONFIG_TYPE_IBEACON_RSSI:               0x09,
+	CONFIG_TYPE_WIFI:                       0x0A,
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// Configuration types
-	configNameUuid: 0x00,
-	configDeviceTypeUuid: 0x01,
-	configRoomUuid: 0x02,
-	configFloorUuid: 0x03,
-	configNearbyTimeoutUuid: 0x04,
-	configPWMFreqUuid: 0x05,
-	configIBeaconMajorUuid: 0x06,
-	configIBeaconMinorUuid: 0x07,
-	configIBeaconUuidUuid: 0x08,
-	configIBeaconRssiUuid: 0x09,
-	configWifiUuid: 0x0A,
+	//////////////////////////////////////////////////////////////////////////////
+	// Value set at reserved bytes for allignment
+	RESERVED:                               0x00,
+	//////////////////////////////////////////////////////////////////////////////
 
-// Value set at reserved bytes for allignment
-	RESERVED: 0x00,
+	//////////////////////////////////////////////////////////////////////////////
+	// Mesh messages
+	CHANNEL_DATA:                           0x02,
+	MESH_TYPE_PWM:                          0x01,
+	MESH_TYPE_BEACON_CONFIG:                0x02,
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// Mesh messages
-	channelData: 0x02,
-	meshTypePwm: 0x01,
-	meshTypeBeaconConfig: 0x02,
+	//////////////////////////////////////////////////////////////////////////////
+	// iBeacon Identifiers
+	APPLE_COMPANY_ID:                       0x004c,
+	IBEACON_ADVERTISEMENT_ID:               0x0215,
+	//////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-	APPLE_COMPANY_ID: 0x004c,
-	IBEACON_ADVERTISEMENT_ID: 0x0215,
-
-//////////////////////////////////////////////////////////////////////////////
 };
