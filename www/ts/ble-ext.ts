@@ -1,6 +1,6 @@
-// TODO: discover services
 // TODO: sort ascending / descending
 
+// TODO: import instead of reference
 /// <reference path="ble-base.ts"/>
 /// <reference path="ble-utils.ts"/>
 
