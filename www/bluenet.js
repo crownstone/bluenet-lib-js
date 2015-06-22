@@ -46,6 +46,8 @@ var BleTypes = {
     CONFIG_TYPE_IBEACON_PROXIMITY_UUID: 0x08,
     CONFIG_TYPE_IBEACON_RSSI: 0x09,
     CONFIG_TYPE_WIFI: 0x0A,
+    CONFIG_TYPE_TX_POWER: 0x0B,
+    CONFIG_TYPE_ADV_INTERVAL: 0x0C,
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
     // Value set at reserved bytes for allignment
@@ -131,12 +133,24 @@ var BleUtils = {
         return arr;
     },
     /*
-     * Convert an unsigned byte to signed byte
+     * Convert an unsigned byte to a signed byte
      */
     unsignedToSignedByte: function (value) {
         // make signed
         if (value > 127) {
             return value - 256;
+        }
+        else {
+            return value;
+        }
+    },
+    /*
+     * Convert a signed byte to an unsigned byte
+     */
+    signedToUnsignedByte: function (value) {
+        // make signed
+        if (value < 0) {
+            return value + 256;
         }
         else {
             return value;
@@ -722,6 +736,66 @@ var BleBase = function () {
         configuration.payload = u8;
         console.log("Send payload: " + u8);
         self.writeConfiguration(address, configuration, successCB, errorCB);
+    };
+    /*
+     * Set the transmission power
+     * Can be: -30, -20, -16, -12, -8, -4, 0, or 4
+     */
+    self.setTxPower = function (address, value, successCB, errorCB) {
+        console.log("set TX power to " + value);
+        var configuration = new BleConfigurationMessage;
+        configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
+        configuration.length = 2;
+        configuration.payload = new Uint8Array([BleUtils.signedToUnsignedByte(value)]);
+        self.writeConfiguration(address, configuration, successCB, errorCB);
+    };
+    /*
+     * Get the transmission power
+     */
+    self.getTxPower = function (address, successCB, errorCB) {
+        self.getConfiguration(address, BleTypes.CONFIG_TYPE_TX_POWER, function (configuration) {
+            if (configuration.length != 1) {
+                var msg = "Configuration value for tx power should have length 1";
+                if (errorCB)
+                    errorCB(msg);
+            }
+            else {
+                var txPower = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+                console.log("TX power is set to: " + txPower);
+                if (successCB)
+                    successCB(txPower);
+            }
+        }, errorCB);
+    };
+    /*
+     * Set the advertisement interval (in ms)
+     */
+    self.setAdvertisementInterval = function (address, value, successCB, errorCB) {
+        console.log("set advertisement interval to " + value);
+        value = Math.floor(value / 0.625);
+        var configuration = new BleConfigurationMessage;
+        configuration.type = BleTypes.CONFIG_TYPE_ADV_INTERVAL;
+        configuration.length = 2;
+        configuration.payload = BleUtils.uint16ToByteArray(value);
+        self.writeConfiguration(address, configuration, successCB, errorCB);
+    };
+    /*
+     * Get the advertisement interval (in ms)
+     */
+    self.getAdvertisementInterval = function (address, successCB, errorCB) {
+        self.getConfiguration(address, BleTypes.CONFIG_TYPE_IBEACON_MAJOR, function (configuration) {
+            if (configuration.length != 2) {
+                var msg = "Configuration value for advertisement interval should have length 2";
+                if (errorCB)
+                    errorCB(msg);
+            }
+            else {
+                var interval = BleUtils.byteArrayToUint16(configuration.payload, 0);
+                console.log("Advertisement interval is set to: " + interval);
+                if (successCB)
+                    successCB(interval);
+            }
+        }, errorCB);
     };
     /*
      * Set the major value for beacon
@@ -1624,7 +1698,7 @@ var BleExt = (function () {
         }
         this.ble.getConfiguration(this.targetAddress, configurationType, successCB, errorCB);
     };
-    // TODO writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
+    // TODO? writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
     BleExt.prototype.readDeviceName = function (successCB, errorCB) {
         if (!this.hasConfigurationCharacteristics()) {
             if (errorCB)
@@ -1752,6 +1826,38 @@ var BleExt = (function () {
             return;
         }
         this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
+    };
+    BleExt.prototype.readTxPower = function (successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getTxPower(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.writeTxPower = function (value, successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setTxPower(this.targetAddress, value, successCB, errorCB);
+    };
+    BleExt.prototype.readAdvertisementInterval = function (successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getAdvertisementInterval(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.writeAdvertisementInterval = function (value, successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setAdvertisementInterval(this.targetAddress, value, successCB, errorCB);
     };
     // TODO: value should be an object with ssid and pw
     BleExt.prototype.writeWifi = function (value, successCB, errorCB) {

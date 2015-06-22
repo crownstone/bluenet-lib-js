@@ -519,7 +519,7 @@ class BleExt {
 		this.ble.getConfiguration(this.targetAddress, configurationType, successCB, errorCB);
 	}
 
-	// TODO writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
+	// TODO? writing/reading configs, should be replaced with a functions to convert value object to a config object and then call writeConfiguration
 
 	readDeviceName(successCB, errorCB) {
 		if (!this.hasConfigurationCharacteristics()) {
@@ -648,6 +648,39 @@ class BleExt {
 		}
 		this.ble.setRoom(this.targetAddress, value, successCB, errorCB);
 	}
+
+	readTxPower(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getTxPower(this.targetAddress, successCB, errorCB);
+	}
+
+	writeTxPower(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setTxPower(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readAdvertisementInterval(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getAdvertisementInterval(this.targetAddress, successCB, errorCB);
+	}
+
+	writeAdvertisementInterval(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setAdvertisementInterval(this.targetAddress, value, successCB, errorCB);
+	}
+
 
 	// TODO: value should be an object with ssid and pw
 	writeWifi(value, successCB, errorCB) {

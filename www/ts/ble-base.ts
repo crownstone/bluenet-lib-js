@@ -658,6 +658,77 @@ var BleBase = function() {
 		self.writeConfiguration(address, configuration, successCB, errorCB);
 	}
 
+
+	/*
+	 * Set the transmission power
+	 * Can be: -30, -20, -16, -12, -8, -4, 0, or 4
+	 */
+	self.setTxPower = function(address, value, successCB, errorCB) {
+		console.log("set TX power to " + value);
+		var configuration = new BleConfigurationMessage;
+		configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
+		configuration.length = 2;
+		configuration.payload = new Uint8Array([BleUtils.signedToUnsignedByte(value)]);
+		self.writeConfiguration(address, configuration, successCB, errorCB);
+	}
+
+	/*
+	 * Get the transmission power
+	 */
+	self.getTxPower = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			BleTypes.CONFIG_TYPE_TX_POWER,
+			function(configuration) {
+				if (configuration.length != 1) {
+					var msg = "Configuration value for tx power should have length 1";
+					if (errorCB) errorCB(msg);
+				} else {
+					var txPower = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+					console.log("TX power is set to: " + txPower);
+					if (successCB) successCB(txPower);
+				}
+			},
+			errorCB
+		);
+	}
+
+
+	/*
+	 * Set the advertisement interval (in ms)
+	 */
+	self.setAdvertisementInterval = function(address, value, successCB, errorCB) {
+		console.log("set advertisement interval to " + value);
+		value = Math.floor(value/0.625);
+		var configuration = new BleConfigurationMessage;
+		configuration.type = BleTypes.CONFIG_TYPE_ADV_INTERVAL;
+		configuration.length = 2;
+		configuration.payload = BleUtils.uint16ToByteArray(value);
+		self.writeConfiguration(address, configuration, successCB, errorCB);
+	}
+
+	/*
+	 * Get the advertisement interval (in ms)
+	 */
+	self.getAdvertisementInterval = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			BleTypes.CONFIG_TYPE_IBEACON_MAJOR,
+			function(configuration) {
+				if (configuration.length != 2) {
+					var msg = "Configuration value for advertisement interval should have length 2";
+					if (errorCB) errorCB(msg);
+				} else {
+					var interval = BleUtils.byteArrayToUint16(configuration.payload, 0);
+					console.log("Advertisement interval is set to: " + interval);
+					if (successCB) successCB(interval);
+				}
+			},
+			errorCB
+		);
+	}
+
+
 	/*
 	 * Set the major value for beacon
 	 */

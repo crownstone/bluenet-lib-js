@@ -82,12 +82,24 @@ var BleUtils = {
 	},
 
 	/*
-	 * Convert an unsigned byte to signed byte
+	 * Convert an unsigned byte to a signed byte
 	 */
 	unsignedToSignedByte : function(value) {
 		// make signed
 		if (value > 127) {
 			return value - 256;
+		} else {
+			return value;
+		}
+	},
+
+	/*
+	 * Convert a signed byte to an unsigned byte
+	 */
+	signedToUnsignedByte : function(value) {
+		// make signed
+		if (value < 0) {
+			return value + 256;
 		} else {
 			return value;
 		}
