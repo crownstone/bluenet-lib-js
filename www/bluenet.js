@@ -746,7 +746,7 @@ var BleBase = function () {
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
         configuration.length = 1;
-        configuration.payload = new Uint8Array([BleUtils.signedToUnsignedByte(value)]);
+        configuration.payload = new Uint8Array([value]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
     /*
