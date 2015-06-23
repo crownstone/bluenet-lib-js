@@ -790,7 +790,7 @@ var BleBase = function () {
                     errorCB(msg);
             }
             else {
-                var interval = BleUtils.byteArrayToUint16(configuration.payload, 0);
+                var interval = BleUtils.byteArrayToUint16(configuration.payload, 0) * 0.625;
                 console.log("Advertisement interval is set to: " + interval);
                 if (successCB)
                     successCB(interval);
