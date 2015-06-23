@@ -783,7 +783,7 @@ var BleBase = function () {
      * Get the advertisement interval (in ms)
      */
     self.getAdvertisementInterval = function (address, successCB, errorCB) {
-        self.getConfiguration(address, BleTypes.CONFIG_TYPE_IBEACON_MAJOR, function (configuration) {
+        self.getConfiguration(address, BleTypes.CONFIG_TYPE_ADV_INTERVAL, function (configuration) {
             if (configuration.length != 2) {
                 var msg = "Configuration value for advertisement interval should have length 2";
                 if (errorCB)
