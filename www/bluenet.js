@@ -745,7 +745,7 @@ var BleBase = function () {
         console.log("set TX power to " + value);
         var configuration = new BleConfigurationMessage;
         configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
-        configuration.length = 2;
+        configuration.length = 1;
         configuration.payload = new Uint8Array([BleUtils.signedToUnsignedByte(value)]);
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
