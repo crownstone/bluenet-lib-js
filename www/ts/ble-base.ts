@@ -730,6 +730,73 @@ var BleBase = function() {
 
 
 	/*
+	 * Set the minimal environment temperature
+	 */
+	self.setMinEnvTemp = function(address, value, successCB, errorCB) {
+		console.log("set min env temp to " + value);
+		var configuration = new BleConfigurationMessage;
+		configuration.type = BleTypes.CONFIG_TYPE_MIN_ENV_TEMP;
+		configuration.length = 1;
+		configuration.payload = new Uint8Array([value]);
+		self.writeConfiguration(address, configuration, successCB, errorCB);
+	}
+
+	/*
+	 * Get the minimal environment temperature
+	 */
+	self.getMinEnvTemp = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			BleTypes.CONFIG_TYPE_MIN_ENV_TEMP,
+			function(configuration) {
+				if (configuration.length != 1) {
+					var msg = "Configuration value for min env temp should have length 1";
+					if (errorCB) errorCB(msg);
+				} else {
+					var temp = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+					console.log("Min env temp is set to: " + temp);
+					if (successCB) successCB(temp);
+				}
+			},
+			errorCB
+		);
+	}
+
+	/*
+	 * Set the maximal environment temperature
+	 */
+	self.setMaxEnvTemp = function(address, value, successCB, errorCB) {
+		console.log("set max env temp to " + value);
+		var configuration = new BleConfigurationMessage;
+		configuration.type = BleTypes.CONFIG_TYPE_MAX_ENV_TEMP;
+		configuration.length = 1;
+		configuration.payload = new Uint8Array([value]);
+		self.writeConfiguration(address, configuration, successCB, errorCB);
+	}
+
+	/*
+	 * Get the maximal environment temperature
+	 */
+	self.getMaxEnvTemp = function(address, successCB, errorCB) {
+		self.getConfiguration(
+			address,
+			BleTypes.CONFIG_TYPE_MAX_ENV_TEMP,
+			function(configuration) {
+				if (configuration.length != 1) {
+					var msg = "Configuration value for max env temp should have length 1";
+					if (errorCB) errorCB(msg);
+				} else {
+					var temp = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+					console.log("Max env temp is set to: " + temp);
+					if (successCB) successCB(temp);
+				}
+			},
+			errorCB
+		);
+	}
+
+
+	/*
 	 * Set the major value for beacon
 	 */
 	self.setBeaconMajor = function(address, value, successCB, errorCB) {

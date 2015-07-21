@@ -50,8 +50,13 @@ var BleTypes = {
 	CONFIG_TYPE_IBEACON_PROXIMITY_UUID:     0x08,
 	CONFIG_TYPE_IBEACON_RSSI:               0x09,
 	CONFIG_TYPE_WIFI:                       0x0A,
-	CONFIG_TYPE_TX_POWER:                        0x0B,
-	CONFIG_TYPE_ADV_INTERVAL:                    0x0C,
+	CONFIG_TYPE_TX_POWER:                   0x0B,
+	CONFIG_TYPE_ADV_INTERVAL:               0x0C,
+	CONFIG_TYPE_PASSKEY:                    0x0D,
+	CONFIG_TYPE_MIN_ENV_TEMP:               0x0E,
+	CONFIG_TYPE_MAX_ENV_TEMP:               0x0F,
+
+
 	//////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////

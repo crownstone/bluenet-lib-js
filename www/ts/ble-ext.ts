@@ -681,6 +681,37 @@ class BleExt {
 		this.ble.setAdvertisementInterval(this.targetAddress, value, successCB, errorCB);
 	}
 
+	readMinEnvTemp(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getMinEnvTemp(this.targetAddress, successCB, errorCB);
+	}
+
+	writeMinEnvTemp(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setMinEnvTemp(this.targetAddress, value, successCB, errorCB);
+	}
+
+	readMaxEnvTemp(successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.getMaxEnvTemp(this.targetAddress, successCB, errorCB);
+	}
+
+	writeMaxEnvTemp(value, successCB, errorCB) {
+		if (!this.hasConfigurationCharacteristics()) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.setMaxEnvTemp(this.targetAddress, value, successCB, errorCB);
+	}
 
 	// TODO: value should be an object with ssid and pw
 	writeWifi(value, successCB, errorCB) {

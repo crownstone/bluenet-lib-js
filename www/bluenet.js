@@ -48,6 +48,9 @@ var BleTypes = {
     CONFIG_TYPE_WIFI: 0x0A,
     CONFIG_TYPE_TX_POWER: 0x0B,
     CONFIG_TYPE_ADV_INTERVAL: 0x0C,
+    CONFIG_TYPE_PASSKEY: 0x0D,
+    CONFIG_TYPE_MIN_ENV_TEMP: 0x0E,
+    CONFIG_TYPE_MAX_ENV_TEMP: 0x0F,
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
     // Value set at reserved bytes for allignment
@@ -794,6 +797,64 @@ var BleBase = function () {
                 console.log("Advertisement interval is set to: " + interval);
                 if (successCB)
                     successCB(interval);
+            }
+        }, errorCB);
+    };
+    /*
+     * Set the minimal environment temperature
+     */
+    self.setMinEnvTemp = function (address, value, successCB, errorCB) {
+        console.log("set min env temp to " + value);
+        var configuration = new BleConfigurationMessage;
+        configuration.type = BleTypes.CONFIG_TYPE_MIN_ENV_TEMP;
+        configuration.length = 1;
+        configuration.payload = new Uint8Array([value]);
+        self.writeConfiguration(address, configuration, successCB, errorCB);
+    };
+    /*
+     * Get the minimal environment temperature
+     */
+    self.getMinEnvTemp = function (address, successCB, errorCB) {
+        self.getConfiguration(address, BleTypes.CONFIG_TYPE_MIN_ENV_TEMP, function (configuration) {
+            if (configuration.length != 1) {
+                var msg = "Configuration value for min env temp should have length 1";
+                if (errorCB)
+                    errorCB(msg);
+            }
+            else {
+                var temp = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+                console.log("Min env temp is set to: " + temp);
+                if (successCB)
+                    successCB(temp);
+            }
+        }, errorCB);
+    };
+    /*
+     * Set the maximal environment temperature
+     */
+    self.setMaxEnvTemp = function (address, value, successCB, errorCB) {
+        console.log("set max env temp to " + value);
+        var configuration = new BleConfigurationMessage;
+        configuration.type = BleTypes.CONFIG_TYPE_MAX_ENV_TEMP;
+        configuration.length = 1;
+        configuration.payload = new Uint8Array([value]);
+        self.writeConfiguration(address, configuration, successCB, errorCB);
+    };
+    /*
+     * Get the maximal environment temperature
+     */
+    self.getMaxEnvTemp = function (address, successCB, errorCB) {
+        self.getConfiguration(address, BleTypes.CONFIG_TYPE_MAX_ENV_TEMP, function (configuration) {
+            if (configuration.length != 1) {
+                var msg = "Configuration value for max env temp should have length 1";
+                if (errorCB)
+                    errorCB(msg);
+            }
+            else {
+                var temp = BleUtils.unsignedToSignedByte(configuration.payload[0]);
+                console.log("Max env temp is set to: " + temp);
+                if (successCB)
+                    successCB(temp);
             }
         }, errorCB);
     };
@@ -1858,6 +1919,38 @@ var BleExt = (function () {
             return;
         }
         this.ble.setAdvertisementInterval(this.targetAddress, value, successCB, errorCB);
+    };
+    BleExt.prototype.readMinEnvTemp = function (successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getMinEnvTemp(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.writeMinEnvTemp = function (value, successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setMinEnvTemp(this.targetAddress, value, successCB, errorCB);
+    };
+    BleExt.prototype.readMaxEnvTemp = function (successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.getMaxEnvTemp(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.writeMaxEnvTemp = function (value, successCB, errorCB) {
+        if (!this.hasConfigurationCharacteristics()) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.setMaxEnvTemp(this.targetAddress, value, successCB, errorCB);
     };
     // TODO: value should be an object with ssid and pw
     BleExt.prototype.writeWifi = function (value, successCB, errorCB) {
