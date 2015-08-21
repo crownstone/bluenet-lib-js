@@ -38,6 +38,14 @@ var BleTypes = {
 	//////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////
+	// Power Service
+	DFU_SERVICE_UUID:                       '00001530-1212-efde-1523-785feabcd123',
+	// Power Service - Characteristics
+	CHAR_CONTROL_POINT_UUID:                '00001531-1212-efde-1523-785feabcd123',
+	CHAR_PACKET_UUID:                       '00001532-1212-efde-1523-785feabcd123',
+	//////////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////////////////////////////////////////////////////////
 	// Configuration types
 	CONFIG_TYPE_NAME:                       0x00,
 	CONFIG_TYPE_DEVICE_TYPE:                0x01,
@@ -50,8 +58,8 @@ var BleTypes = {
 	CONFIG_TYPE_IBEACON_PROXIMITY_UUID:     0x08,
 	CONFIG_TYPE_IBEACON_RSSI:               0x09,
 	CONFIG_TYPE_WIFI:                       0x0A,
-	CONFIG_TYPE_TX_POWER:                        0x0B,
-	CONFIG_TYPE_ADV_INTERVAL:                    0x0C,
+	CONFIG_TYPE_TX_POWER:                   0x0B,
+	CONFIG_TYPE_ADV_INTERVAL:               0x0C,
 	//////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -70,6 +78,12 @@ var BleTypes = {
 	// iBeacon Identifiers
 	APPLE_COMPANY_ID:                       0x004c,
 	IBEACON_ADVERTISEMENT_ID:               0x0215,
+	//////////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Reset OP codes
+	RESET_DEFAULT:                          1,
+	RESET_BOOTLOADER:                       66,
 	//////////////////////////////////////////////////////////////////////////////
 
 };

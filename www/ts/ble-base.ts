@@ -46,7 +46,7 @@ var BleBase = function() {
 			},
 			{"request": true}
 		);
-	}
+	};
 
 	self.isConnected = function(address) {
 		if (!address) return false;
@@ -54,7 +54,7 @@ var BleBase = function() {
 		var connected;
 		bluetoothle.isConnected(connected, paramsObj);
 		return connected;
-	}
+	};
 
 	self.reconnectDevice = function(address, timeout, callback) {
 		console.log("Beginning to reconnect to " + address + " with " + timeout + " second timeout");
@@ -98,14 +98,14 @@ var BleBase = function() {
 				}
 			},
 			timeout * 1000);
-	}
+	};
 
 	self.clearReconnectTimeout = function() {
 		console.log("Clearing reconnect timeout");
 		if (self.reconnectTimer != null) {
 			clearTimeout(self.reconnectTimer);
 		}
-	}
+	};
 
 	self.connectDevice = function(address, timeout, callback) {
 		console.log("Beginning to connect to " + address + " with " + timeout + " second timeout");
@@ -158,14 +158,14 @@ var BleBase = function() {
 				}
 			},
 			timeout * 1000);
-	}
+	};
 
 	self.clearConnectTimeout = function() {
 		console.log("Clearing connect timeout");
-		if (self.connectTimer != null) {
+		if (self.connectTimer !== null) {
 			clearTimeout(self.connectTimer);
 		}
-	}
+	};
 
 	/** Discovery of services and characteristics on the target device (crownstone).
 	 *
@@ -203,7 +203,7 @@ var BleBase = function() {
 				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
 	self.discoverCharacteristic = function(address, serviceUuid, characteristicUuid, callback, errorCB) {
 		var paramsObj = {address: address};
@@ -243,7 +243,7 @@ var BleBase = function() {
 				errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
 	self.startEndlessScan = function(callback) {
 		console.log('Start endless scan');
@@ -260,8 +260,8 @@ var BleBase = function() {
 						if (companyId == dobotsCompanyId) {
 							obj.isCrownstone = true;
 						}
-						callback(obj);
-					})
+					});
+					callback(obj);
 				} else if (obj.status == 'scanStarted') {
 					console.log('Endless scan was started successfully');
 				} else {
@@ -279,7 +279,7 @@ var BleBase = function() {
 				// 		'Sorry!');
 			},
 			paramsObj);
-	}
+	};
 
 	self.stopEndlessScan = function() {
 		//console.log("stop endless scan...");
@@ -293,7 +293,7 @@ var BleBase = function() {
 			function(obj) { // stop scan error
 				console.log('Stop scan error: ' + obj.error + ' - ' + obj.message);
 			});
-	}
+	};
 
 	self.parseAdvertisement = function(obj, search, callback) {
 		//var start = 0;
@@ -307,14 +307,14 @@ var BleBase = function() {
 				var el_data = obj.subarray(begin, end);
 				callback(el_data);
 				return;
-			} else if (el_type == 0) {
+			} else if (el_type === 0) {
 				// console.log(search.toString(16) + " not found!");
 				return;
 			} else {
 				i += el_len + 1;
 			}
 		}
-	}
+	};
 
 	self.parseIBeaconData = function(obj, data) {
 		var companyId = data[0] | data[1] << 8; // little endian
@@ -329,19 +329,18 @@ var BleBase = function() {
 		} else {
 			obj.isIBeacon = false;
 		}
-	}
+	};
 
 	/*
 	 * Contains bug: when a device is in "disconnecting" state, it will never be closed.
 	 */
 	self.disconnectDevice = function(address, successCB, errorCB) {
-		var paramsObj = {"address": address}
+		var paramsObj = {"address": address};
 		bluetoothle.disconnect(function(obj) { // disconnect success
 				if (obj.status == "disconnected")
 				{
 					console.log("Device " + obj.address + " disconnected");
-					self.closeDevice(obj.address);
-					if (successCB) successCB();
+					self.closeDevice(obj.address, successCB, errorCB);
 				}
 				else if (obj.status == "disconnecting")
 				{
@@ -351,34 +350,37 @@ var BleBase = function() {
 				else
 				{
 					console.log("Unexpected disconnect status from device " + obj.address + ": " + obj.status);
-					if (errorCB) errorCB();
+					if (errorCB) errorCB(obj);
 				}
 			},
 			function(obj) { // disconnect error
 				console.log("Disconnect error from device " + obj.address + ": " + obj.error + " - " + obj.message);
-				if (errorCB) errorCB();
+				if (errorCB) errorCB(obj);
 			},
 			paramsObj);
-	}
+	};
 
-	self.closeDevice = function(address)
+	self.closeDevice = function(address, successCB, errorCB)
 	{
 		var paramsObj = {"address": address};
 		bluetoothle.close(function(obj)	{ // close success
 				if (obj.status == "closed")
 				{
 					console.log("Device " + obj.address + " closed");
+					if (successCB) successCB(obj);
 				}
 				else
 				{
 					console.log("Unexpected close status from device " + obj.address + ": " + obj.status);
+					if (errorCB) errorCB(obj);
 				}
 			},
 			function(obj) { // close error
 				console.log("Close error from device " + obj.address + ": " + obj.error + " - " + obj.message);
+				if (errorCB) errorCB(obj);
 			},
 			paramsObj);
-	}
+	};
 
 	self.readTemperature = function(address, callback) {
 		console.log("Read temperature at service " + BleTypes.GENERAL_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_TEMPERATURE_UUID);
@@ -401,7 +403,7 @@ var BleBase = function() {
 				console.log('Error in reading temperature: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.scanDevices = function(address, scan) {
 		var u8 = new Uint8Array(1);
@@ -420,7 +422,7 @@ var BleBase = function() {
 				console.log("Error in writing device scan characteristic: " + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.listDevices = function(address, callback) {
 		console.log("Read device list at service " + BleTypes.INDOOR_LOCALIZATION_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_DEVICE_LIST_UUID );
@@ -443,7 +445,7 @@ var BleBase = function() {
 				console.log('Error in reading device list: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.writePWM = function(address, value, successCB, errorCB) {
 		var u8 = new Uint8Array(1);
@@ -468,7 +470,7 @@ var BleBase = function() {
 				if (errorCB) errorCB();
 			},
 			paramsObj);
-	}
+	};
 
 	// TODO: should have errorCB
 	self.readPWM = function(address, callback) {
@@ -492,7 +494,7 @@ var BleBase = function() {
 				console.log('Error in reading current consumption: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	// TODO: should have errorCB
 	self.readCurrentConsumption = function(address, callback) {
@@ -504,6 +506,7 @@ var BleBase = function() {
 					var currentConsumption = bluetoothle.encodedStringToBytes(obj.value);
 					console.log("currentConsumption: " + currentConsumption[0]);
 
+					// todo: check if current consumption is only 1 byte
 					callback(currentConsumption[0]);
 				}
 				else
@@ -516,7 +519,7 @@ var BleBase = function() {
 				console.log('Error in reading current consumption: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	// TODO: should have errorCB
 	self.sampleCurrent = function(address, value, callback) {
@@ -530,13 +533,13 @@ var BleBase = function() {
 					console.log('Successfully written to sample current characteristic - ' + obj.status);
 
 					if (callback) {
-						callback(true)
+						callback(true);
 					}
 				} else {
 					console.log('Writing to sample current characteristic was not successful' + obj);
 
 					if (callback) {
-						callback(false)
+						callback(false);
 					}
 				}
 			},
@@ -544,11 +547,11 @@ var BleBase = function() {
 				console.log("Error in writing to sample current characteristic: " + obj.error + " - " + obj.message);
 
 				if (callback) {
-					callback(false)
+					callback(false);
 				}
 			},
 			paramsObj);
-	}
+	};
 
 	// TODO: should have errorCB
 	self.getCurrentCurve = function(address, callback) {
@@ -605,18 +608,18 @@ var BleBase = function() {
 				console.log('Error in reading current curve: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	/* set floor to value
 	 */
 	self.setFloor = function(address, value, successCB, errorCB) {
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_FLOOR;
 		configuration.length = 1;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/** Get a floor from the connected device
 	 */
@@ -635,14 +638,14 @@ var BleBase = function() {
 				}
 			},
 			errorCB);
-	}
+	};
 
 	// TODO: should be writeWifi()
 	/* Set Wifi SSID and password
 	 */
 	self.setWifi = function(address, value, successCB, errorCB) {
 		var u8;
-		if (value != "") {
+		if (value !== "") {
 			u8 = bluetoothle.stringToBytes(value);
 		} else {
 			var msg = "Value shouldn't be empty";
@@ -650,13 +653,13 @@ var BleBase = function() {
 		}
 
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_WIFI;
 		configuration.length = value.length; // TODO: should be u8.length?
 		configuration.payload = u8;
 		console.log("Send payload: " + u8);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 
 	/*
@@ -665,12 +668,12 @@ var BleBase = function() {
 	 */
 	self.setTxPower = function(address, value, successCB, errorCB) {
 		console.log("set TX power to " + value);
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
 		configuration.length = 1;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the transmission power
@@ -691,7 +694,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 
 	/*
@@ -700,12 +703,12 @@ var BleBase = function() {
 	self.setAdvertisementInterval = function(address, value, successCB, errorCB) {
 		console.log("set advertisement interval to " + value);
 		value = Math.floor(value/0.625);
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_ADV_INTERVAL;
 		configuration.length = 2;
 		configuration.payload = BleUtils.uint16ToByteArray(value);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the advertisement interval (in ms)
@@ -726,7 +729,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 
 	/*
@@ -735,12 +738,12 @@ var BleBase = function() {
 	self.setBeaconMajor = function(address, value, successCB, errorCB) {
 		console.log("set major to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_IBEACON_MAJOR;
 		configuration.length = 2;
 		configuration.payload = BleUtils.uint16ToByteArray(value);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the major value of the beacon
@@ -761,7 +764,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Set the minor value of the beacon
@@ -769,12 +772,12 @@ var BleBase = function() {
 	self.setBeaconMinor = function(address, value, successCB, errorCB) {
 		console.log("set minor to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_IBEACON_MINOR;
 		configuration.length = 2;
 		configuration.payload = BleUtils.uint16ToByteArray(value);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the minor value of the beacon
@@ -795,7 +798,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Get the calibrated rssi at 1m of the beacon
@@ -803,12 +806,12 @@ var BleBase = function() {
 	self.setBeaconCalibratedRssi = function(address, value, successCB, errorCB) {
 		console.log("set rssi to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_IBEACON_RSSI;
 		configuration.length = 1;
 		configuration.payload = new Uint8Array([value]);
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Set the calibrated rssi at 1 m of the beacon
@@ -829,7 +832,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Set the proximity UUID of the beacon
@@ -837,12 +840,12 @@ var BleBase = function() {
 	self.setBeaconProximityUuid = function(address, value, successCB, errorCB) {
 		console.log("set proximity uuid to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID;
 		configuration.payload = BleUtils.uuidToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the proximity UUID of the beacon
@@ -863,7 +866,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Set the device name
@@ -871,12 +874,12 @@ var BleBase = function() {
 	self.setDeviceName = function(address, value, successCB, errorCB) {
 		console.log("set name to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_NAME;
 		configuration.payload = bluetoothle.stringToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the device name
@@ -886,7 +889,7 @@ var BleBase = function() {
 			address,
 			BleTypes.CONFIG_TYPE_NAME,
 			function(configuration) {
-				if (configuration.length == 0) {
+				if (configuration.length === 0) {
 					if (errorCB) errorCB("received empty name");
 				} else {
 					var name = bluetoothle.bytesToString(configuration.payload);
@@ -896,7 +899,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Set the device type
@@ -904,12 +907,12 @@ var BleBase = function() {
 	self.setDeviceType = function(address, value, successCB, errorCB) {
 		console.log("set device type to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_DEVICE_TYPE;
-		configuration.payload = new Uint8Array([value]);
+		configuration.payload = bluetoothle.stringToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the device type
@@ -919,18 +922,17 @@ var BleBase = function() {
 			address,
 			BleTypes.CONFIG_TYPE_DEVICE_TYPE,
 			function(configuration) {
-				if (configuration.length > 1) {
-					var msg = "Configuration value for device type should have length 1";
-					if (errorCB) errorCB(msg);
+				if (configuration.length === 0) {
+					if (errorCB) errorCB("received empty device type");
 				} else {
-					var deviceType = configuration.payload[0];
+					var deviceType = bluetoothle.bytesToString(configuration.payload);
 					console.log("Device type is set to: " + deviceType);
 					if (successCB) successCB(deviceType);
 				}
 			},
 			errorCB
 		);
-	}
+	};
 
 	/*
 	 * Set the room
@@ -938,12 +940,12 @@ var BleBase = function() {
 	self.setRoom = function(address, value, successCB, errorCB) {
 		console.log("set room to " + value);
 		//var configuration = {};
-		var configuration = new BleConfigurationMessage;
+		var configuration = new BleConfigurationMessage();
 		configuration.type = BleTypes.CONFIG_TYPE_ROOM;
-		configuration.payload = new Uint8Array([value]);
+		configuration.payload = bluetoothle.stringToBytes(value);
 		configuration.length = configuration.payload.length;
 		self.writeConfiguration(address, configuration, successCB, errorCB);
-	}
+	};
 
 	/*
 	 * Get the room
@@ -953,18 +955,17 @@ var BleBase = function() {
 			address,
 			BleTypes.CONFIG_TYPE_ROOM,
 			function(configuration) {
-				if (configuration.length > 1) {
-					var msg = "Configuration value for room should have length 1";
-					if (errorCB) errorCB(msg);
+				if (configuration.length === 0) {
+					if (errorCB) errorCB("received empty room");
 				} else {
-					var room = configuration.payload[0];
+					var room = bluetoothle.bytesToString(configuration.payload);
 					console.log("Room is set to: " + room);
 					if (successCB) successCB(room);
 				}
 			},
 			errorCB
 		);
-	}
+	};
 
 	/** Select and read configuration
 	 */
@@ -981,9 +982,7 @@ var BleBase = function() {
 			},
 			errorCB
 		);
-	}
-
-
+	};
 
 	/** Get a specific configuration, selected before in selectConfiguration
 	 */
@@ -997,7 +996,7 @@ var BleBase = function() {
 				if (obj.status == "read") {
 					var bytearray = bluetoothle.encodedStringToBytes(obj.value);
 					//var configuration = {};
-					var configuration = new BleConfigurationMessage;
+					var configuration = new BleConfigurationMessage();
 					configuration.type = bytearray[0];
 					configuration.length = BleUtils.byteArrayToUint16(bytearray, 2);
 					configuration.payload = new Uint8Array(configuration.length);
@@ -1020,7 +1019,7 @@ var BleBase = function() {
 				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
 	/** Writing a configuration
 	 *
@@ -1047,7 +1046,11 @@ var BleBase = function() {
 					var msg = 'Successfully written to "write configuration" characteristic - ' +
 						obj.status;
 					console.log(msg);
-					if (successCB) setTimeout(function() { successCB(msg)}, 500);
+					if (successCB) {
+						setTimeout(function() {
+							successCB(msg);
+						}, 500);
+					}
 				} else {
 					var msg = 'Error in writing to "write configuration" characteristic - ' +
 						obj;
@@ -1062,7 +1065,7 @@ var BleBase = function() {
 				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
 	/** Before getting the value of a specific configuration type, we have to select it.
 	 */
@@ -1096,8 +1099,9 @@ var BleBase = function() {
 				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
+// TODO: length has to be the sizeof(payload) + sizeof(target) + sizeof(type), not only sizeof(payload) !!
 	/** Send a message over the mesh network
 	 * message needs the following properties:
 	 * .channel: there are several channels to use
@@ -1108,7 +1112,7 @@ var BleBase = function() {
 	 */
 	self.writeMeshMessage = function(address, message, successCB, errorCB) {
 
-		message.length += 8 // Add length of target address and length of message type
+		message.length += 8; // Add length of target address and length of message type
 		// build up a single byte array, prepending payload with type and payload length, preamble size is 4
 		var u8 = new Uint8Array(message.length+12);
 		u8[0] = message.channel;
@@ -1148,7 +1152,7 @@ var BleBase = function() {
 				if (errorCB) errorCB(msg);
 			},
 			paramsObj);
-	}
+	};
 
 	self.writeCurrentLimit = function(address, value) {
 		var u8 = new Uint8Array(1);
@@ -1168,7 +1172,7 @@ var BleBase = function() {
 				console.log("Error in writing to current limit characteristic: " + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.readCurrentLimit = function(address, callback) {
 		console.log("Read current limit at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_LIMIT_UUID );
@@ -1193,7 +1197,7 @@ var BleBase = function() {
 				console.log('Error in reading current limit characteristic: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.getTrackedDevices = function(address, callback) {
 		console.log("Read device list at service " + BleTypes.INDOOR_LOCALIZATION_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID );
@@ -1216,7 +1220,7 @@ var BleBase = function() {
 				console.log('Error in reading tracked devices: ' + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
 
 	self.addTrackedDevice = function(address, bt_address, rssi) {
 		var u8 = new Uint8Array(7);
@@ -1239,6 +1243,36 @@ var BleBase = function() {
 				console.log("Error in writing to add tracked device characteristic: " + obj.error + " - " + obj.message);
 			},
 			paramsObj);
-	}
+	};
+
+	self.writeReset = function(address, value, successCB, errorCB) {
+		var u8 = BleUtils.uint32ToByteArray(value);
+		var v = bluetoothle.bytesToEncodedString(u8);
+		console.log("Write " + v + " at service " + BleTypes.GENERAL_SERVICE_UUID +
+				' and characteristic ' + BleTypes.CHAR_RESET_UUID );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.GENERAL_SERVICE_UUID,
+			"characteristicUuid": BleTypes.CHAR_RESET_UUID , "value" : v};
+		bluetoothle.write(
+			function(obj) { // write success
+				if (obj.status == 'written') {
+					var msg = 'Successfully written to reset characteristic - ' +
+						obj.status;
+					console.log(msg);
+					if (successCB) successCB(msg);
+				} else {
+					var msg = 'Error in writing to reset characteristic - ' +
+						obj;
+					console.log(msg);
+					if (errorCB) errorCB(msg);
+				}
+			},
+			function(obj) { // write error
+				var msg = 'Error in writing to reset characteristic - ' +
+					obj.error + " - " + obj.message;
+				console.log(msg);
+				if (errorCB) errorCB(msg);
+			},
+			paramsObj);
+	};
 }
 
