@@ -466,6 +466,26 @@ class BleExt {
 		this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
+	////////////////////////////////
+	// Device Information Service //
+	////////////////////////////////
+
+	readHardwareRevision(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.readHardwareRevision(this.targetAddress, successCB, errorCB);
+	}
+
+	readFirmwareRevision(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.readFirmwareRevision(this.targetAddress, successCB, errorCB);
+	}
+
 	/////////////////////
 	// General service //
 	/////////////////////

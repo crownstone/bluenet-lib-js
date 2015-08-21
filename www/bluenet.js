@@ -41,6 +41,13 @@ var BleTypes = {
     CHAR_PACKET_UUID: '00001532-1212-efde-1523-785feabcd123',
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
+    // Device Information Service
+    DEVICE_INFORMATION_UUID: '180a',
+    // Device Information Service - Characteristics
+    CHAR_HARDWARE_REVISION_UUID: '2a27',
+    CHAR_FIRMWARE_REVISION_UUID: '2a26',
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     // Configuration types
     CONFIG_TYPE_NAME: 0x00,
     CONFIG_TYPE_DEVICE_TYPE: 0x01,
@@ -1299,6 +1306,42 @@ var BleBase = function () {
                 errorCB(msg);
         }, paramsObj);
     };
+    self.readHardwareRevision = function (address, callback) {
+        console.log("Read hardware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_HARDWARE_REVISION_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_HARDWARE_REVISION_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var bytes = bluetoothle.encodedStringToBytes(obj.value);
+                var hardwareRevision = bluetoothle.bytesToString(bytes);
+                console.log("hardware revision: " + hardwareRevision);
+                callback(hardwareRevision);
+            }
+            else {
+                console.log("Unexpected read status: " + obj.status);
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            console.log('Error in reading hardware revision: ' + obj.error + " - " + obj.message);
+        }, paramsObj);
+    };
+    self.readFirmwareRevision = function (address, callback) {
+        console.log("Read firmware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_FIRMWARE_REVISION_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_FIRMWARE_REVISION_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var bytes = bluetoothle.encodedStringToBytes(obj.value);
+                var firmwareRevision = bluetoothle.bytesToString(bytes);
+                console.log("firmware revision: " + firmwareRevision);
+                callback(firmwareRevision);
+            }
+            else {
+                console.log("Unexpected read status: " + obj.status);
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            console.log('Error in reading firmware revision: ' + obj.error + " - " + obj.message);
+        }, paramsObj);
+    };
 };
 // TODO: sort ascending / descending
 // TODO: import instead of reference
@@ -1694,6 +1737,25 @@ var BleExt = (function () {
         }
         console.log("TODO");
         this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
+    };
+    ////////////////////////////////
+    // Device Information Service //
+    ////////////////////////////////
+    BleExt.prototype.readHardwareRevision = function (successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.readHardwareRevision(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.readFirmwareRevision = function (successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.readFirmwareRevision(this.targetAddress, successCB, errorCB);
     };
     /////////////////////
     // General service //

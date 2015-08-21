@@ -1274,5 +1274,56 @@ var BleBase = function() {
 			},
 			paramsObj);
 	};
+
+	self.readHardwareRevision = function(address, callback) {
+		console.log("Read hardware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_HARDWARE_REVISION_UUID);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_HARDWARE_REVISION_UUID};
+		bluetoothle.read(function(obj) { // read success
+				if (obj.status == "read")
+				{
+					var bytes = bluetoothle.encodedStringToBytes(obj.value);
+					var hardwareRevision = bluetoothle.bytesToString(bytes);
+
+					console.log("hardware revision: " + hardwareRevision);
+
+					callback(hardwareRevision);
+				}
+				else
+				{
+					console.log("Unexpected read status: " + obj.status);
+					self.disconnectDevice(address);
+				}
+			},
+			function(obj) { // read error
+				console.log('Error in reading hardware revision: ' + obj.error + " - " + obj.message);
+			},
+			paramsObj);
+	};
+
+	self.readFirmwareRevision = function(address, callback) {
+		console.log("Read firmware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_FIRMWARE_REVISION_UUID);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_FIRMWARE_REVISION_UUID};
+		bluetoothle.read(function(obj) { // read success
+				if (obj.status == "read")
+				{
+					var bytes = bluetoothle.encodedStringToBytes(obj.value);
+					var firmwareRevision = bluetoothle.bytesToString(bytes);
+
+					console.log("firmware revision: " + firmwareRevision);
+
+					callback(firmwareRevision);
+				}
+				else
+				{
+					console.log("Unexpected read status: " + obj.status);
+					self.disconnectDevice(address);
+				}
+			},
+			function(obj) { // read error
+				console.log('Error in reading firmware revision: ' + obj.error + " - " + obj.message);
+			},
+			paramsObj);
+	};
+
 }
 
