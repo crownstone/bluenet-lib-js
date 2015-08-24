@@ -142,6 +142,9 @@ var BleBase = function() {
 					// self.disconnectDevice(address);
 					console.log("close device, try again...");
 					self.closeDevice(address);
+					if (callback) {
+						callback(false);
+					}
 				} else {
 					self.clearConnectTimeout();
 					if (callback) {
@@ -173,7 +176,7 @@ var BleBase = function() {
 	 * will be generated.
 	 */
 	self.discoverServices = function(address, callback, successCB, errorCB) {
-		console.log("Beginning discovery of services for device" + address);
+		console.log("Beginning discovery of services for device " + address);
 		var paramsObj = {address: address};
 		bluetoothle.discover(function(obj) { // discover success
 				if (obj.status == "discovered") {

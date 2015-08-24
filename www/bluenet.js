@@ -327,6 +327,9 @@ var BleBase = function () {
                 // self.disconnectDevice(address);
                 console.log("close device, try again...");
                 self.closeDevice(address);
+                if (callback) {
+                    callback(false);
+                }
             }
             else {
                 self.clearConnectTimeout();
@@ -354,7 +357,7 @@ var BleBase = function () {
      * will be generated.
      */
     self.discoverServices = function (address, callback, successCB, errorCB) {
-        console.log("Beginning discovery of services for device" + address);
+        console.log("Beginning discovery of services for device " + address);
         var paramsObj = { address: address };
         bluetoothle.discover(function (obj) {
             if (obj.status == "discovered") {
@@ -1456,7 +1459,8 @@ var BleExt = (function () {
         this.scanFilter = filter;
     };
     BleExt.prototype.checkState = function (checkState) {
-        return this.state === checkState;
+        return this.state == checkState;
+        // return true;
     };
     BleExt.prototype.startScan = function (scanCB, errorCB) {
         if (!this.checkState(BleState.initialized)) {
@@ -1504,6 +1508,7 @@ var BleExt = (function () {
         console.log("Connect");
         var self = this;
         if (this.checkState(BleState.initialized)) {
+            console.log("connecting ...");
             if (address) {
                 this.setTarget(address);
             }
@@ -1515,16 +1520,20 @@ var BleExt = (function () {
                         successCB();
                 }
                 else {
+                    self.onDisconnect();
                     if (errorCB)
                         errorCB();
                 }
             });
         }
         else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+            console.log("already connected");
+            self.onConnect();
             if (successCB)
                 successCB();
         }
         else {
+            console.log("wrong state");
             if (errorCB)
                 errorCB("Not in correct state to connect and not connected to " + address);
         }

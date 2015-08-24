@@ -121,7 +121,7 @@ class BleExt {
 	}
 
 	checkState(checkState) {
-		return this.state === checkState;
+		return this.state == checkState;
 	}
 
 	startScan(scanCB, errorCB) {
@@ -174,6 +174,7 @@ class BleExt {
 		var self = this;
 
 		if (this.checkState(BleState.initialized)) {
+			console.log("connecting ...");
 
 			if (address) {
 				this.setTarget(address);
@@ -189,15 +190,19 @@ class BleExt {
 						if (successCB) successCB();
 					}
 					else {
+						self.onDisconnect();
 						if (errorCB) errorCB();
 					}
 				}
 			);
 		}
 		else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+			console.log("already connected");
+			self.onConnect();
 			if (successCB) successCB();
 		}
 		else {
+			console.log("wrong state");
 			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
 		}
 	}
