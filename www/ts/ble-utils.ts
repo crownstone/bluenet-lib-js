@@ -2,7 +2,15 @@
  * Conversions between uint8 array and uint16 or uint32
  */
 
+var DEBUG_ENABLED = true;
+
 var BleUtils = {
+	debug : function(msg) {
+		if (DEBUG_ENABLED) {
+			console.log(msg);
+		}
+	},
+
 	uint16ToByteArray : function(value) {
 		var u8 = new Uint8Array(2);
 		u8[0] = (value >> 0 & 0xFF);

@@ -34,6 +34,7 @@ class BleDevice {
 
 class BleDeviceList {
 	devices = [];
+
 	getDevice(address) {
 		var index;
 		if (this.devices.some(
@@ -114,7 +115,7 @@ class BleExt {
 	 */
 	setScanFilter(filter : BleFilter) {
 		//if (!Array.isArray(filter)) {
-		//	console.log("Must supply an array!");
+		//	BleUtils.debug("Must supply an array!");
 		//	return;
 		//}
 		this.scanFilter = filter;
@@ -126,7 +127,7 @@ class BleExt {
 
 	startScan(scanCB, errorCB) {
 		if (!this.checkState(BleState.initialized)) {
-			console.log("State must be \"initialized\"");
+			BleUtils.debug("State must be \"initialized\"");
 			// todo: errorCB
 			return;
 		}
@@ -170,11 +171,11 @@ class BleExt {
 	}
 
 	connect(address, successCB, errorCB) {
-		console.log("Connect");
+		BleUtils.debug("Connect");
 		var self = this;
 
 		if (this.checkState(BleState.initialized)) {
-			console.log("connecting ...");
+			BleUtils.debug("connecting ...");
 
 			if (address) {
 				this.setTarget(address);
@@ -197,18 +198,18 @@ class BleExt {
 			);
 		}
 		else if (this.checkState(BleState.connected) && this.targetAddress == address) {
-			console.log("already connected");
+			BleUtils.debug("already connected");
 			self.onConnect();
 			if (successCB) successCB();
 		}
 		else {
-			console.log("wrong state");
+			BleUtils.debug("wrong state");
 			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
 		}
 	}
 
 	disconnect(successCB, errorCB) {
-		console.log("Disconnect");
+		BleUtils.debug("Disconnect");
 		var self = this;
 		this.ble.disconnectDevice(
 			this.targetAddress,
@@ -217,14 +218,14 @@ class BleExt {
 				if (successCB) successCB();
 			},
 			function() {
-				console.log("Assuming we are disconnected anyway");
+				BleUtils.debug("Assuming we are disconnected anyway");
 				if (errorCB) errorCB();
 			}
 		);
 	}
 
 	close(successCB, errorCB) {
-		console.log("Close");
+		BleUtils.debug("Close");
 		this.ble.closeDevice(this.targetAddress, successCB, errorCB);
 	}
 
@@ -242,7 +243,7 @@ class BleExt {
 
 	// Called on successful connect
 	onConnect() {
-		console.log("onConnect");
+		BleUtils.debug("onConnect");
 		this.state = BleState.connected;
 		if (this.disconnectTimeout != null) {
 			clearTimeout(this.disconnectTimeout);
@@ -251,7 +252,7 @@ class BleExt {
 	}
 
 	onDisconnect() {
-		console.log("onDisconnect");
+		BleUtils.debug("onDisconnect");
 		this.state = BleState.initialized;
 		if (this.disconnectTimeout != null) {
 			clearTimeout(this.disconnectTimeout);
@@ -261,7 +262,7 @@ class BleExt {
 	}
 
 	onCharacteristicDiscover(serviceUuid, characteristicUuid) {
-		console.log("Discovered characteristic: " + characteristicUuid);
+		BleUtils.debug("Discovered characteristic: " + characteristicUuid);
 		// to be checked: this might not work with the characteristics defined by
 		// the Bluetooth Consortium the characteristics seem to have the same Uuid
 		// in different services??
@@ -286,7 +287,7 @@ class BleExt {
 				characteristicCB,
 				successCB,
 				function(msg) {
-					console.log(msg);
+					BleUtils.debug(msg);
 					this.disconnect();
 					if (errorCB) errorCB(msg);
 				}.bind(this)
@@ -343,7 +344,7 @@ class BleExt {
 
 	// TODO: keep up PWM value and use it
 	togglePower(successCB, errorCB) {
-		console.log("Toggle power");
+		BleUtils.debug("Toggle power");
 		this.readPWM(
 			function(value) {
 				if (value > 0) {
@@ -370,7 +371,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("Set pwm to " + pwm);
+		BleUtils.debug("Set pwm to " + pwm);
 		this.ble.writePWM(this.targetAddress, pwm, successCB, errorCB);
 	}
 
@@ -386,7 +387,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("Reading current PWM value");
+		BleUtils.debug("Reading current PWM value");
 		this.ble.readPWM(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
@@ -458,7 +459,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("TODO");
+		BleUtils.debug("TODO");
 		//this.ble.writeCurrentLimit(this.targetAddress, value)
 	}
 
@@ -467,7 +468,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("TODO");
+		BleUtils.debug("TODO");
 		this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
@@ -517,6 +518,22 @@ class BleExt {
 		this.reset(BleTypes.RESET_BOOTLOADER, successCB, errorCB);
 	}
 
+	// DFU Mode
+	resetToApplication(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CONTROL_POINT_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		var self = this;
+		this.ble.dfuReset(this.targetAddress, 0x06,
+			function() {
+				self.onDisconnect();
+				successCB();
+			},
+			errorCB
+		);
+	}
+
 	readTemperature(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
 			if (errorCB) errorCB();
@@ -530,7 +547,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("Send mesh message: ", obj);
+		BleUtils.debug("Send mesh message: " + obj);
 		this.ble.writeMeshMessage(this.targetAddress, obj, successCB, errorCB)
 	}
 
@@ -544,7 +561,7 @@ class BleExt {
 		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
 			return;
 		}
-		console.log("Set config");
+		BleUtils.debug("Set config");
 		this.ble.writeConfiguration(this.targetAddress, obj, successCB, errorCB);
 	}
 
@@ -558,7 +575,7 @@ class BleExt {
 	readConfiguration(configurationType, successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
 			!this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
-			console.log("Missing characteristic UUID");
+			BleUtils.debug("Missing characteristic UUID");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -765,7 +782,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("Set wifi to " + value);
+		BleUtils.debug("Set wifi to " + value);
 		this.ble.setWifi(this.targetAddress, value, successCB, errorCB);
 	}
 
@@ -812,7 +829,7 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		console.log("TODO");
+		BleUtils.debug("TODO");
 	}
 
 	readScannedDevices(successCB, errorCB) {
@@ -854,3 +871,5 @@ class BleExt {
 	}
 
 }
+
+

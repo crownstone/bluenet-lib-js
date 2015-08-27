@@ -38,9 +38,9 @@ var BleTypes = {
 	//////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////
-	// Power Service
+	// DFU Service
 	DFU_SERVICE_UUID:                       '00001530-1212-efde-1523-785feabcd123',
-	// Power Service - Characteristics
+	// DFU Service - Characteristics
 	CHAR_CONTROL_POINT_UUID:                '00001531-1212-efde-1523-785feabcd123',
 	CHAR_PACKET_UUID:                       '00001532-1212-efde-1523-785feabcd123',
 	//////////////////////////////////////////////////////////////////////////////
