@@ -120,9 +120,14 @@ class BleExt {
 		this.scanFilter = filter;
 	}
 
+	checkState(checkState) {
+		return this.state == checkState;
+	}
+
 	startScan(scanCB, errorCB) {
-		if (this.state !== BleState.initialized) {
+		if (!this.checkState(BleState.initialized)) {
 			console.log("State must be \"initialized\"");
+			// todo: errorCB
 			return;
 		}
 		this.devices.clear();
@@ -167,23 +172,39 @@ class BleExt {
 	connect(address, successCB, errorCB) {
 		console.log("Connect");
 		var self = this;
-		if (address) {
-			this.setTarget(address);
-		}
-		this.state = BleState.connecting;
-		this.ble.connectDevice(
-			this.targetAddress,
-			5,
-			function(success) {
-				if (success) {
-					self.onConnect();
-					if (successCB) successCB();
-				}
-				else {
-					if (errorCB) errorCB();
-				}
+
+		if (this.checkState(BleState.initialized)) {
+			console.log("connecting ...");
+
+			if (address) {
+				this.setTarget(address);
 			}
-		);
+
+			this.state = BleState.connecting;
+			this.ble.connectDevice(
+				this.targetAddress,
+				5,
+				function(success) {
+					if (success) {
+						self.onConnect();
+						if (successCB) successCB();
+					}
+					else {
+						self.onDisconnect();
+						if (errorCB) errorCB();
+					}
+				}
+			);
+		}
+		else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+			console.log("already connected");
+			self.onConnect();
+			if (successCB) successCB();
+		}
+		else {
+			console.log("wrong state");
+			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+		}
 	}
 
 	disconnect(successCB, errorCB) {
@@ -200,6 +221,11 @@ class BleExt {
 				if (errorCB) errorCB();
 			}
 		);
+	}
+
+	close(successCB, errorCB) {
+		console.log("Close");
+		this.ble.closeDevice(this.targetAddress, successCB, errorCB);
 	}
 
 	discoverServices(characteristicCB, successCB, errorCB) {
@@ -236,6 +262,9 @@ class BleExt {
 
 	onCharacteristicDiscover(serviceUuid, characteristicUuid) {
 		console.log("Discovered characteristic: " + characteristicUuid);
+		// to be checked: this might not work with the characteristics defined by
+		// the Bluetooth Consortium the characteristics seem to have the same Uuid
+		// in different services??
 		this.characteristics[characteristicUuid] = true;
 	}
 
@@ -253,26 +282,10 @@ class BleExt {
 
 	connectAndDiscover(address, characteristicCB, successCB, errorCB) {
 		var connectionSuccess = function () {
-			this.ble.discoverServices(
-				address,
-				null,
-				function(obj) {
-					var services = obj.services;
-					for (var i = 0; i < services.length; ++i) {
-						var serviceUuid = services[i].serviceUuid;
-						var characteristics = services[i].characteristics;
-						for (var j = 0; j < characteristics.length; ++j) {
-							var characteristicUuid = characteristics[j].characteristicUuid;
-							this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-
-							if (characteristicCB) {
-								characteristicCB(serviceUuid, characteristicUuid);
-							}
-						}
-					}
-					if (successCB) successCB();
-				}.bind(this),
-				function (msg) {
+			this.discoverServices(
+				characteristicCB,
+				successCB,
+				function(msg) {
 					console.log(msg);
 					this.disconnect();
 					if (errorCB) errorCB(msg);
@@ -280,21 +293,12 @@ class BleExt {
 			);
 		};
 
-		if (this.state == BleState.initialized) {
-//			var timeout = 10;
-			this.connect(
-				address,
-//				timeout,
-				connectionSuccess.bind(this),
-				errorCB
-			);
-		}
-		else if (this.state == BleState.connected && this.targetAddress == address) {
-			connectionSuccess();
-		}
-		else {
-			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
-		}
+		this.connect(
+			address,
+//			timeout,
+			connectionSuccess.bind(this),
+			errorCB
+		);
 	}
 
 	/* Connects, discovers characteristic, executes given function, then disconnects
@@ -371,8 +375,8 @@ class BleExt {
 	}
 
 	connectAndWritePWM(address, pwm, successCB, errorCB) {
-		function func(successCB, errorCB) {
-			this.writePWM(pwm, successCB, errorCB);
+		function func(funcSuccessCB, funcErrorCB) {
+			this.writePWM(pwm, funcSuccessCB, funcErrorCB);
 		}
 		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
 	}
@@ -387,8 +391,8 @@ class BleExt {
 	}
 
 	connectAndReadPWM(address, successCB, errorCB) {
-		function func(successCB, errorCB) {
-			this.readPWM(successCB, errorCB);
+		function func(funcSuccessCB, funcErrorCB) {
+			this.readPWM(funcSuccessCB, funcErrorCB);
 		}
 		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
 	}
@@ -467,9 +471,51 @@ class BleExt {
 		this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
+	////////////////////////////////
+	// Device Information Service //
+	////////////////////////////////
+
+	readHardwareRevision(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.readHardwareRevision(this.targetAddress, successCB, errorCB);
+	}
+
+	readFirmwareRevision(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		this.ble.readFirmwareRevision(this.targetAddress, successCB, errorCB);
+	}
+
 	/////////////////////
 	// General service //
 	/////////////////////
+
+	reset(value, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_RESET_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		var self = this;
+		this.ble.writeReset(this.targetAddress, value,
+			function() {
+				self.disconnect(successCB, errorCB);
+			},
+			errorCB
+		);
+	}
+
+	resetDevice(successCB, errorCB) {
+		this.reset(BleTypes.RESET_DEFAULT, successCB, errorCB);
+	}
+
+	resetToBootloader(successCB, errorCB) {
+		this.reset(BleTypes.RESET_BOOTLOADER, successCB, errorCB);
+	}
 
 	readTemperature(successCB, errorCB) {
 		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
@@ -503,8 +549,8 @@ class BleExt {
 	}
 
 	connectAndWriteConfiguration(address, config, successCB, errorCB) {
-		function func(successCB, errorCB) {
-			this.writeConfiguration(config, successCB, errorCB);
+		function func(funcSuccessCB, funcErrorCB) {
+			this.writeConfiguration(config, funcSuccessCB, funcErrorCB);
 		}
 		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
 	}
@@ -754,11 +800,11 @@ class BleExt {
 	//////////////////////////
 
 	readTrackedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
 			if (errorCB) errorCB();
 			return;
 		}
-		this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
+		this.ble.getTrackedDevices(this.targetAddress, successCB); //TODO: should have an errorCB
 	}
 
 	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {

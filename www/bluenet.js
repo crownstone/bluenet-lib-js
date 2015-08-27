@@ -34,6 +34,20 @@ var BleTypes = {
     CHAR_CURRENT_LIMIT_UUID: '5b8d0005-6f20-11e4-b116-123b93f75cba',
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
+    // Power Service
+    DFU_SERVICE_UUID: '00001530-1212-efde-1523-785feabcd123',
+    // Power Service - Characteristics
+    CHAR_CONTROL_POINT_UUID: '00001531-1212-efde-1523-785feabcd123',
+    CHAR_PACKET_UUID: '00001532-1212-efde-1523-785feabcd123',
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
+    // Device Information Service
+    DEVICE_INFORMATION_UUID: '180a',
+    // Device Information Service - Characteristics
+    CHAR_HARDWARE_REVISION_UUID: '2a27',
+    CHAR_FIRMWARE_REVISION_UUID: '2a26',
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     // Configuration types
     CONFIG_TYPE_NAME: 0x00,
     CONFIG_TYPE_DEVICE_TYPE: 0x01,
@@ -65,7 +79,12 @@ var BleTypes = {
     //////////////////////////////////////////////////////////////////////////////
     // iBeacon Identifiers
     APPLE_COMPANY_ID: 0x004c,
-    IBEACON_ADVERTISEMENT_ID: 0x0215
+    IBEACON_ADVERTISEMENT_ID: 0x0215,
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
+    // Reset OP codes
+    RESET_DEFAULT: 1,
+    RESET_BOOTLOADER: 66
 };
 /*
  * Conversions between uint8 array and uint16 or uint32
@@ -311,6 +330,9 @@ var BleBase = function () {
                 // self.disconnectDevice(address);
                 console.log("close device, try again...");
                 self.closeDevice(address);
+                if (callback) {
+                    callback(false);
+                }
             }
             else {
                 self.clearConnectTimeout();
@@ -328,7 +350,7 @@ var BleBase = function () {
     };
     self.clearConnectTimeout = function () {
         console.log("Clearing connect timeout");
-        if (self.connectTimer != null) {
+        if (self.connectTimer !== null) {
             clearTimeout(self.connectTimer);
         }
     };
@@ -338,7 +360,7 @@ var BleBase = function () {
      * will be generated.
      */
     self.discoverServices = function (address, callback, successCB, errorCB) {
-        console.log("Beginning discovery of services for device" + address);
+        console.log("Beginning discovery of services for device " + address);
         var paramsObj = { address: address };
         bluetoothle.discover(function (obj) {
             if (obj.status == "discovered") {
@@ -424,8 +446,8 @@ var BleBase = function () {
                     if (companyId == dobotsCompanyId) {
                         obj.isCrownstone = true;
                     }
-                    callback(obj);
                 });
+                callback(obj);
             }
             else if (obj.status == 'scanStarted') {
                 console.log('Endless scan was started successfully');
@@ -469,7 +491,7 @@ var BleBase = function () {
                 callback(el_data);
                 return;
             }
-            else if (el_type == 0) {
+            else if (el_type === 0) {
                 // console.log(search.toString(16) + " not found!");
                 return;
             }
@@ -501,9 +523,7 @@ var BleBase = function () {
         bluetoothle.disconnect(function (obj) {
             if (obj.status == "disconnected") {
                 console.log("Device " + obj.address + " disconnected");
-                self.closeDevice(obj.address);
-                if (successCB)
-                    successCB();
+                self.closeDevice(obj.address, successCB, errorCB);
             }
             else if (obj.status == "disconnecting") {
                 console.log("Disconnecting device " + obj.address);
@@ -511,25 +531,31 @@ var BleBase = function () {
             else {
                 console.log("Unexpected disconnect status from device " + obj.address + ": " + obj.status);
                 if (errorCB)
-                    errorCB();
+                    errorCB(obj);
             }
         }, function (obj) {
             console.log("Disconnect error from device " + obj.address + ": " + obj.error + " - " + obj.message);
             if (errorCB)
-                errorCB();
+                errorCB(obj);
         }, paramsObj);
     };
-    self.closeDevice = function (address) {
+    self.closeDevice = function (address, successCB, errorCB) {
         var paramsObj = { "address": address };
         bluetoothle.close(function (obj) {
             if (obj.status == "closed") {
                 console.log("Device " + obj.address + " closed");
+                if (successCB)
+                    successCB(obj);
             }
             else {
                 console.log("Unexpected close status from device " + obj.address + ": " + obj.status);
+                if (errorCB)
+                    errorCB(obj);
             }
         }, function (obj) {
             console.log("Close error from device " + obj.address + ": " + obj.error + " - " + obj.message);
+            if (errorCB)
+                errorCB(obj);
         }, paramsObj);
     };
     self.readTemperature = function (address, callback) {
@@ -632,6 +658,7 @@ var BleBase = function () {
             if (obj.status == "read") {
                 var currentConsumption = bluetoothle.encodedStringToBytes(obj.value);
                 console.log("currentConsumption: " + currentConsumption[0]);
+                // todo: check if current consumption is only 1 byte
                 callback(currentConsumption[0]);
             }
             else {
@@ -696,7 +723,7 @@ var BleBase = function () {
      */
     self.setFloor = function (address, value, successCB, errorCB) {
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_FLOOR;
         configuration.length = 1;
         configuration.payload = new Uint8Array([value]);
@@ -724,7 +751,7 @@ var BleBase = function () {
      */
     self.setWifi = function (address, value, successCB, errorCB) {
         var u8;
-        if (value != "") {
+        if (value !== "") {
             u8 = bluetoothle.stringToBytes(value);
         }
         else {
@@ -733,7 +760,7 @@ var BleBase = function () {
                 errorCB(msg);
         }
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_WIFI;
         configuration.length = value.length; // TODO: should be u8.length?
         configuration.payload = u8;
@@ -746,7 +773,7 @@ var BleBase = function () {
      */
     self.setTxPower = function (address, value, successCB, errorCB) {
         console.log("set TX power to " + value);
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_TX_POWER;
         configuration.length = 1;
         configuration.payload = new Uint8Array([value]);
@@ -776,7 +803,7 @@ var BleBase = function () {
     self.setAdvertisementInterval = function (address, value, successCB, errorCB) {
         console.log("set advertisement interval to " + value);
         value = Math.floor(value / 0.625);
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_ADV_INTERVAL;
         configuration.length = 2;
         configuration.payload = BleUtils.uint16ToByteArray(value);
@@ -864,7 +891,7 @@ var BleBase = function () {
     self.setBeaconMajor = function (address, value, successCB, errorCB) {
         console.log("set major to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_IBEACON_MAJOR;
         configuration.length = 2;
         configuration.payload = BleUtils.uint16ToByteArray(value);
@@ -894,7 +921,7 @@ var BleBase = function () {
     self.setBeaconMinor = function (address, value, successCB, errorCB) {
         console.log("set minor to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_IBEACON_MINOR;
         configuration.length = 2;
         configuration.payload = BleUtils.uint16ToByteArray(value);
@@ -924,7 +951,7 @@ var BleBase = function () {
     self.setBeaconCalibratedRssi = function (address, value, successCB, errorCB) {
         console.log("set rssi to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_IBEACON_RSSI;
         configuration.length = 1;
         configuration.payload = new Uint8Array([value]);
@@ -954,7 +981,7 @@ var BleBase = function () {
     self.setBeaconProximityUuid = function (address, value, successCB, errorCB) {
         console.log("set proximity uuid to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_IBEACON_PROXIMITY_UUID;
         configuration.payload = BleUtils.uuidToBytes(value);
         configuration.length = configuration.payload.length;
@@ -984,7 +1011,7 @@ var BleBase = function () {
     self.setDeviceName = function (address, value, successCB, errorCB) {
         console.log("set name to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_NAME;
         configuration.payload = bluetoothle.stringToBytes(value);
         configuration.length = configuration.payload.length;
@@ -995,7 +1022,7 @@ var BleBase = function () {
      */
     self.getDeviceName = function (address, successCB, errorCB) {
         self.getConfiguration(address, BleTypes.CONFIG_TYPE_NAME, function (configuration) {
-            if (configuration.length == 0) {
+            if (configuration.length === 0) {
                 if (errorCB)
                     errorCB("received empty name");
             }
@@ -1013,9 +1040,9 @@ var BleBase = function () {
     self.setDeviceType = function (address, value, successCB, errorCB) {
         console.log("set device type to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_DEVICE_TYPE;
-        configuration.payload = new Uint8Array([value]);
+        configuration.payload = bluetoothle.stringToBytes(value);
         configuration.length = configuration.payload.length;
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
@@ -1024,13 +1051,12 @@ var BleBase = function () {
      */
     self.getDeviceType = function (address, successCB, errorCB) {
         self.getConfiguration(address, BleTypes.CONFIG_TYPE_DEVICE_TYPE, function (configuration) {
-            if (configuration.length > 1) {
-                var msg = "Configuration value for device type should have length 1";
+            if (configuration.length === 0) {
                 if (errorCB)
-                    errorCB(msg);
+                    errorCB("received empty device type");
             }
             else {
-                var deviceType = configuration.payload[0];
+                var deviceType = bluetoothle.bytesToString(configuration.payload);
                 console.log("Device type is set to: " + deviceType);
                 if (successCB)
                     successCB(deviceType);
@@ -1043,9 +1069,9 @@ var BleBase = function () {
     self.setRoom = function (address, value, successCB, errorCB) {
         console.log("set room to " + value);
         //var configuration = {};
-        var configuration = new BleConfigurationMessage;
+        var configuration = new BleConfigurationMessage();
         configuration.type = BleTypes.CONFIG_TYPE_ROOM;
-        configuration.payload = new Uint8Array([value]);
+        configuration.payload = bluetoothle.stringToBytes(value);
         configuration.length = configuration.payload.length;
         self.writeConfiguration(address, configuration, successCB, errorCB);
     };
@@ -1054,13 +1080,12 @@ var BleBase = function () {
      */
     self.getRoom = function (address, successCB, errorCB) {
         self.getConfiguration(address, BleTypes.CONFIG_TYPE_ROOM, function (configuration) {
-            if (configuration.length > 1) {
-                var msg = "Configuration value for room should have length 1";
+            if (configuration.length === 0) {
                 if (errorCB)
-                    errorCB(msg);
+                    errorCB("received empty room");
             }
             else {
-                var room = configuration.payload[0];
+                var room = bluetoothle.bytesToString(configuration.payload);
                 console.log("Room is set to: " + room);
                 if (successCB)
                     successCB(room);
@@ -1089,7 +1114,7 @@ var BleBase = function () {
             if (obj.status == "read") {
                 var bytearray = bluetoothle.encodedStringToBytes(obj.value);
                 //var configuration = {};
-                var configuration = new BleConfigurationMessage;
+                var configuration = new BleConfigurationMessage();
                 configuration.type = bytearray[0];
                 configuration.length = BleUtils.byteArrayToUint16(bytearray, 2);
                 configuration.payload = new Uint8Array(configuration.length);
@@ -1136,8 +1161,11 @@ var BleBase = function () {
                 var msg = 'Successfully written to "write configuration" characteristic - ' +
                     obj.status;
                 console.log(msg);
-                if (successCB)
-                    setTimeout(function () { successCB(msg); }, 500);
+                if (successCB) {
+                    setTimeout(function () {
+                        successCB(msg);
+                    }, 500);
+                }
             }
             else {
                 var msg = 'Error in writing to "write configuration" characteristic - ' +
@@ -1187,6 +1215,7 @@ var BleBase = function () {
                 errorCB(msg);
         }, paramsObj);
     };
+    // TODO: length has to be the sizeof(payload) + sizeof(target) + sizeof(type), not only sizeof(payload) !!
     /** Send a message over the mesh network
      * message needs the following properties:
      * .channel: there are several channels to use
@@ -1311,6 +1340,72 @@ var BleBase = function () {
             console.log("Error in writing to add tracked device characteristic: " + obj.error + " - " + obj.message);
         }, paramsObj);
     };
+    self.writeReset = function (address, value, successCB, errorCB) {
+        var u8 = BleUtils.uint32ToByteArray(value);
+        var v = bluetoothle.bytesToEncodedString(u8);
+        console.log("Write " + v + " at service " + BleTypes.GENERAL_SERVICE_UUID +
+            ' and characteristic ' + BleTypes.CHAR_RESET_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.GENERAL_SERVICE_UUID,
+            "characteristicUuid": BleTypes.CHAR_RESET_UUID, "value": v };
+        bluetoothle.write(function (obj) {
+            if (obj.status == 'written') {
+                var msg = 'Successfully written to reset characteristic - ' +
+                    obj.status;
+                console.log(msg);
+                if (successCB)
+                    successCB(msg);
+            }
+            else {
+                var msg = 'Error in writing to reset characteristic - ' +
+                    obj;
+                console.log(msg);
+                if (errorCB)
+                    errorCB(msg);
+            }
+        }, function (obj) {
+            var msg = 'Error in writing to reset characteristic - ' +
+                obj.error + " - " + obj.message;
+            console.log(msg);
+            if (errorCB)
+                errorCB(msg);
+        }, paramsObj);
+    };
+    self.readHardwareRevision = function (address, callback) {
+        console.log("Read hardware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_HARDWARE_REVISION_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_HARDWARE_REVISION_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var bytes = bluetoothle.encodedStringToBytes(obj.value);
+                var hardwareRevision = bluetoothle.bytesToString(bytes);
+                console.log("hardware revision: " + hardwareRevision);
+                callback(hardwareRevision);
+            }
+            else {
+                console.log("Unexpected read status: " + obj.status);
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            console.log('Error in reading hardware revision: ' + obj.error + " - " + obj.message);
+        }, paramsObj);
+    };
+    self.readFirmwareRevision = function (address, callback) {
+        console.log("Read firmware revision at service " + BleTypes.DEVICE_INFORMATION_UUID + ' and characteristic ' + BleTypes.CHAR_FIRMWARE_REVISION_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.DEVICE_INFORMATION_UUID, "characteristicUuid": BleTypes.CHAR_FIRMWARE_REVISION_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var bytes = bluetoothle.encodedStringToBytes(obj.value);
+                var firmwareRevision = bluetoothle.bytesToString(bytes);
+                console.log("firmware revision: " + firmwareRevision);
+                callback(firmwareRevision);
+            }
+            else {
+                console.log("Unexpected read status: " + obj.status);
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            console.log('Error in reading firmware revision: ' + obj.error + " - " + obj.message);
+        }, paramsObj);
+    };
 };
 // TODO: sort ascending / descending
 // TODO: import instead of reference
@@ -1424,9 +1519,14 @@ var BleExt = (function () {
         //}
         this.scanFilter = filter;
     };
+    BleExt.prototype.checkState = function (checkState) {
+        return this.state == checkState;
+        // return true;
+    };
     BleExt.prototype.startScan = function (scanCB, errorCB) {
-        if (this.state !== BleState.initialized) {
+        if (!this.checkState(BleState.initialized)) {
             console.log("State must be \"initialized\"");
+            // todo: errorCB
             return;
         }
         this.devices.clear();
@@ -1468,21 +1568,36 @@ var BleExt = (function () {
     BleExt.prototype.connect = function (address, successCB, errorCB) {
         console.log("Connect");
         var self = this;
-        if (address) {
-            this.setTarget(address);
+        if (this.checkState(BleState.initialized)) {
+            console.log("connecting ...");
+            if (address) {
+                this.setTarget(address);
+            }
+            this.state = BleState.connecting;
+            this.ble.connectDevice(this.targetAddress, 5, function (success) {
+                if (success) {
+                    self.onConnect();
+                    if (successCB)
+                        successCB();
+                }
+                else {
+                    self.onDisconnect();
+                    if (errorCB)
+                        errorCB();
+                }
+            });
         }
-        this.state = BleState.connecting;
-        this.ble.connectDevice(this.targetAddress, 5, function (success) {
-            if (success) {
-                self.onConnect();
-                if (successCB)
-                    successCB();
-            }
-            else {
-                if (errorCB)
-                    errorCB();
-            }
-        });
+        else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+            console.log("already connected");
+            self.onConnect();
+            if (successCB)
+                successCB();
+        }
+        else {
+            console.log("wrong state");
+            if (errorCB)
+                errorCB("Not in correct state to connect and not connected to " + address);
+        }
     };
     BleExt.prototype.disconnect = function (successCB, errorCB) {
         console.log("Disconnect");
@@ -1496,6 +1611,10 @@ var BleExt = (function () {
             if (errorCB)
                 errorCB();
         });
+    };
+    BleExt.prototype.close = function (successCB, errorCB) {
+        console.log("Close");
+        this.ble.closeDevice(this.targetAddress, successCB, errorCB);
     };
     BleExt.prototype.discoverServices = function (characteristicCB, successCB, errorCB) {
         this.ble.discoverServices(this.targetAddress, function (serviceUuid, characteristicUuid) {
@@ -1525,6 +1644,9 @@ var BleExt = (function () {
     };
     BleExt.prototype.onCharacteristicDiscover = function (serviceUuid, characteristicUuid) {
         console.log("Discovered characteristic: " + characteristicUuid);
+        // to be checked: this might not work with the characteristics defined by
+        // the Bluetooth Consortium the characteristics seem to have the same Uuid
+        // in different services??
         this.characteristics[characteristicUuid] = true;
     };
     BleExt.prototype.setConnectListener = function (func) {
@@ -1537,41 +1659,16 @@ var BleExt = (function () {
     BleExt.prototype.getState = function () { return this.state; };
     BleExt.prototype.connectAndDiscover = function (address, characteristicCB, successCB, errorCB) {
         var connectionSuccess = function () {
-            this.ble.discoverServices(address, null, function (obj) {
-                var services = obj.services;
-                for (var i = 0; i < services.length; ++i) {
-                    var serviceUuid = services[i].serviceUuid;
-                    var characteristics = services[i].characteristics;
-                    for (var j = 0; j < characteristics.length; ++j) {
-                        var characteristicUuid = characteristics[j].characteristicUuid;
-                        this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-                        if (characteristicCB) {
-                            characteristicCB(serviceUuid, characteristicUuid);
-                        }
-                    }
-                }
-                if (successCB)
-                    successCB();
-            }.bind(this), function (msg) {
+            this.discoverServices(characteristicCB, successCB, function (msg) {
                 console.log(msg);
                 this.disconnect();
                 if (errorCB)
                     errorCB(msg);
             }.bind(this));
         };
-        if (this.state == BleState.initialized) {
-            //			var timeout = 10;
-            this.connect(address, 
-            //				timeout,
-            connectionSuccess.bind(this), errorCB);
-        }
-        else if (this.state == BleState.connected && this.targetAddress == address) {
-            connectionSuccess();
-        }
-        else {
-            if (errorCB)
-                errorCB("Not in correct state to connect and not connected to " + address);
-        }
+        this.connect(address, 
+        //			timeout,
+        connectionSuccess.bind(this), errorCB);
     };
     /* Connects, discovers characteristic, executes given function, then disconnects
      */
@@ -1635,8 +1732,8 @@ var BleExt = (function () {
         this.ble.writePWM(this.targetAddress, pwm, successCB, errorCB);
     };
     BleExt.prototype.connectAndWritePWM = function (address, pwm, successCB, errorCB) {
-        function func(successCB, errorCB) {
-            this.writePWM(pwm, successCB, errorCB);
+        function func(funcSuccessCB, funcErrorCB) {
+            this.writePWM(pwm, funcSuccessCB, funcErrorCB);
         }
         this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
@@ -1650,8 +1747,8 @@ var BleExt = (function () {
         this.ble.readPWM(this.targetAddress, successCB); //TODO: should have an errorCB
     };
     BleExt.prototype.connectAndReadPWM = function (address, successCB, errorCB) {
-        function func(successCB, errorCB) {
-            this.readPWM(successCB, errorCB);
+        function func(funcSuccessCB, funcErrorCB) {
+            this.readPWM(funcSuccessCB, funcErrorCB);
         }
         this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
@@ -1711,9 +1808,45 @@ var BleExt = (function () {
         console.log("TODO");
         this.ble.readCurrentLimit(this.targetAddress, successCB); //TODO: should have an errorCB
     };
+    ////////////////////////////////
+    // Device Information Service //
+    ////////////////////////////////
+    BleExt.prototype.readHardwareRevision = function (successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.readHardwareRevision(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.readFirmwareRevision = function (successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        this.ble.readFirmwareRevision(this.targetAddress, successCB, errorCB);
+    };
     /////////////////////
     // General service //
     /////////////////////
+    BleExt.prototype.reset = function (value, successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_RESET_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        var self = this;
+        this.ble.writeReset(this.targetAddress, value, function () {
+            self.disconnect(successCB, errorCB);
+        }, errorCB);
+    };
+    BleExt.prototype.resetDevice = function (successCB, errorCB) {
+        this.reset(BleTypes.RESET_DEFAULT, successCB, errorCB);
+    };
+    BleExt.prototype.resetToBootloader = function (successCB, errorCB) {
+        this.reset(BleTypes.RESET_BOOTLOADER, successCB, errorCB);
+    };
     BleExt.prototype.readTemperature = function (successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
             if (errorCB)
@@ -1744,8 +1877,8 @@ var BleExt = (function () {
         this.ble.writeConfiguration(this.targetAddress, obj, successCB, errorCB);
     };
     BleExt.prototype.connectAndWriteConfiguration = function (address, config, successCB, errorCB) {
-        function func(successCB, errorCB) {
-            this.writeConfiguration(config, successCB, errorCB);
+        function func(funcSuccessCB, funcErrorCB) {
+            this.writeConfiguration(config, funcSuccessCB, funcErrorCB);
         }
         this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
@@ -1989,12 +2122,12 @@ var BleExt = (function () {
     // Localization service //
     //////////////////////////
     BleExt.prototype.readTrackedDevices = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
             if (errorCB)
                 errorCB();
             return;
         }
-        this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
+        this.ble.getTrackedDevices(this.targetAddress, successCB); //TODO: should have an errorCB
     };
     BleExt.prototype.writeTrackedDevice = function (deviceAddress, rssiThreshold, successCB, errorCB) {
         if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
