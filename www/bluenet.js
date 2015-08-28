@@ -89,7 +89,7 @@ var BleTypes = {
 /*
  * Conversions between uint8 array and uint16 or uint32
  */
-var DEBUG_ENABLED = false;
+var DEBUG_ENABLED = true;
 var BleUtils = {
     debug: function (msg) {
         if (DEBUG_ENABLED) {
@@ -1676,6 +1676,10 @@ var BleExt = (function () {
             if (characteristicCB)
                 characteristicCB(serviceUuid, characteristicUuid);
         }.bind(this), successCB, errorCB);
+    };
+    BleExt.prototype.hasCharacteristic = function (characteristic) {
+        console.log("characteristics: " + JSON.stringify(this.characteristics));
+        return this.characteristics.hasOwnProperty(characteristic);
     };
     // Called on successful connect
     BleExt.prototype.onConnect = function () {

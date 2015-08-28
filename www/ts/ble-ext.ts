@@ -241,6 +241,11 @@ class BleExt {
 		);
 	}
 
+	hasCharacteristic(characteristic) {
+		console.log("characteristics: " + JSON.stringify(this.characteristics))
+		return this.characteristics.hasOwnProperty(characteristic);
+	}
+
 	// Called on successful connect
 	onConnect() {
 		BleUtils.debug("onConnect");
