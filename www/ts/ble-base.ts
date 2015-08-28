@@ -1319,6 +1319,52 @@ var BleBase = function() {
 			paramsObj);
 	};
 
+	self.writeCurrentTime = function(address, value, successCB, errorCB) {
+		var u8 = BleUtils.uint32ToByteArray(value);
+		var v = bluetoothle.bytesToEncodedString(u8);
+		BleUtils.debug("Write " + v + " at service " + BleTypes.SCHEDULE_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_TIME_UUID );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.SCHEDULE_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_TIME_UUID , "value" : v};
+		bluetoothle.write(function(obj) { // write success
+				if (obj.status == 'written') {
+					BleUtils.debug('Successfully written to current time characteristic - ' + obj.status);
+					if (successCB) successCB();
+				} else {
+					BleUtils.debug('Writing to current time characteristic was not successful' + obj);
+					if (errorCB) errorCB();
+				}
+			},
+			function(obj) { // write error
+				BleUtils.debug("Error in writing to current time characteristic: " + obj.error + " - " + obj.message);
+				if (errorCB) errorCB();
+			},
+			paramsObj);
+	};
+
+	self.readCurrentTime = function(address, successCB, errorCB) {
+		BleUtils.debug("Read current consumption at service " + BleTypes.SCHEDULE_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_TIME_UUID);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.SCHEDULE_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_TIME_UUID};
+		bluetoothle.read(function(obj) { // read success
+				if (obj.status == "read")
+				{
+					var u8 = bluetoothle.encodedStringToBytes(obj.value);
+					var time = BleUtils.byteArrayToUint32(u8, 0);
+					BleUtils.debug("current time: " + time);
+					if (successCB) successCB(time);
+				}
+				else
+				{
+					BleUtils.debug("Unexpected read status: " + obj.status);
+					if (errorCB) errorCB();
+					self.disconnectDevice(address);
+				}
+			},
+			function(obj) { // read error
+				BleUtils.debug('Error in reading current consumption: ' + obj.error + " - " + obj.message);
+				if (errorCB) errorCB();
+			},
+			paramsObj);
+	};
+
 	self.writeReset = function(address, value, successCB, errorCB) {
 		var u8 = BleUtils.uint32ToByteArray(value);
 		var v = bluetoothle.bytesToEncodedString(u8);

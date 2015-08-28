@@ -34,6 +34,12 @@ var BleTypes = {
     CHAR_CURRENT_LIMIT_UUID: '5b8d0005-6f20-11e4-b116-123b93f75cba',
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
+    // Schedule Service
+    SCHEDULE_SERVICE_UUID: '96d20000-4bcf-11e5-885d-feff819cdc9f',
+    // Schedule Service - Characteristics
+    CHAR_CURRENT_TIME_UUID: '96d20001-4bcf-11e5-885d-feff819cdc9f',
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     // DFU Service
     DFU_SERVICE_UUID: '00001530-1212-efde-1523-785feabcd123',
     // DFU Service - Characteristics
@@ -1350,6 +1356,51 @@ var BleBase = function () {
             BleUtils.debug("Error in writing to add tracked device characteristic: " + obj.error + " - " + obj.message);
         }, paramsObj);
     };
+    self.writeCurrentTime = function (address, value, successCB, errorCB) {
+        var u8 = BleUtils.uint32ToByteArray(value);
+        var v = bluetoothle.bytesToEncodedString(u8);
+        BleUtils.debug("Write " + v + " at service " + BleTypes.SCHEDULE_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_TIME_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.SCHEDULE_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_TIME_UUID, "value": v };
+        bluetoothle.write(function (obj) {
+            if (obj.status == 'written') {
+                BleUtils.debug('Successfully written to current time characteristic - ' + obj.status);
+                if (successCB)
+                    successCB();
+            }
+            else {
+                BleUtils.debug('Writing to current time characteristic was not successful' + obj);
+                if (errorCB)
+                    errorCB();
+            }
+        }, function (obj) {
+            BleUtils.debug("Error in writing to current time characteristic: " + obj.error + " - " + obj.message);
+            if (errorCB)
+                errorCB();
+        }, paramsObj);
+    };
+    self.readCurrentTime = function (address, successCB, errorCB) {
+        BleUtils.debug("Read current consumption at service " + BleTypes.SCHEDULE_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_TIME_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.SCHEDULE_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_TIME_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var u8 = bluetoothle.encodedStringToBytes(obj.value);
+                var time = BleUtils.byteArrayToUint32(u8, 0);
+                BleUtils.debug("current time: " + time);
+                if (successCB)
+                    successCB(time);
+            }
+            else {
+                BleUtils.debug("Unexpected read status: " + obj.status);
+                if (errorCB)
+                    errorCB();
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            BleUtils.debug('Error in reading current consumption: ' + obj.error + " - " + obj.message);
+            if (errorCB)
+                errorCB();
+        }, paramsObj);
+    };
     self.writeReset = function (address, value, successCB, errorCB) {
         var u8 = BleUtils.uint32ToByteArray(value);
         var v = bluetoothle.bytesToEncodedString(u8);
@@ -2237,6 +2288,49 @@ var BleExt = (function () {
         var stopScanAndReadResult = function () {
             this.writeScanDevices(false, this.readScannedDevices(successCB, errorCB), errorCB);
         };
+    };
+    ////////////////////////////////
+    // Schedule Service //
+    ////////////////////////////////
+    BleExt.prototype.writeCurrentTime = function (posixTime, successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        BleUtils.debug("Set current time to " + posixTime);
+        this.ble.writeCurrentTime(this.targetAddress, posixTime, successCB, errorCB);
+    };
+    BleExt.prototype.readCurrentTime = function (successCB, errorCB) {
+        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        BleUtils.debug("Reading current time");
+        this.ble.readCurrentTime(this.targetAddress, successCB, errorCB);
+    };
+    BleExt.prototype.syncTime = function (successCB, errorCB) {
+        var posixTime = Math.round(Date.now() / 1000);
+        this.writeCurrentTime(posixTime, successCB, errorCB);
+    };
+    BleExt.prototype.connectAndWriteCurrentTime = function (address, posixTime, successCB, errorCB) {
+        function func(funcSuccessCB, funcErrorCB) {
+            this.writeCurrentTime(posixTime, funcSuccessCB, funcErrorCB);
+        }
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+    };
+    BleExt.prototype.connectAndReadCurrentTime = function (address, successCB, errorCB) {
+        function func(funcSuccessCB, funcErrorCB) {
+            this.readCurrentTime(funcSuccessCB, funcErrorCB);
+        }
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+    };
+    BleExt.prototype.connectAndSyncTime = function (address, successCB, errorCB) {
+        function func(funcSuccessCB, funcErrorCB) {
+            this.syncCurrentTime(funcSuccessCB, funcErrorCB);
+        }
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     return BleExt;
 })();

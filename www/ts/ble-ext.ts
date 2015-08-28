@@ -875,6 +875,54 @@ class BleExt {
 		}
 	}
 
+	////////////////////////////////
+	// Schedule Service //
+	////////////////////////////////
+
+	writeCurrentTime(posixTime, successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		BleUtils.debug("Set current time to " + posixTime);
+		this.ble.writeCurrentTime(this.targetAddress, posixTime, successCB, errorCB);
+	}
+
+	readCurrentTime(successCB, errorCB) {
+		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+			if (errorCB) errorCB();
+			return;
+		}
+		BleUtils.debug("Reading current time");
+		this.ble.readCurrentTime(this.targetAddress, successCB, errorCB);
+	}
+
+	syncTime(successCB, errorCB) {
+		var posixTime = Math.round(Date.now() / 1000);
+		this.writeCurrentTime(posixTime, successCB, errorCB);
+	}
+
+	connectAndWriteCurrentTime(address, posixTime, successCB, errorCB) {
+		function func(funcSuccessCB, funcErrorCB) {
+			this.writeCurrentTime(posixTime, funcSuccessCB, funcErrorCB);
+		}
+		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+	}
+
+	connectAndReadCurrentTime(address, successCB, errorCB) {
+		function func(funcSuccessCB, funcErrorCB) {
+			this.readCurrentTime(funcSuccessCB, funcErrorCB);
+		}
+		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+	}
+
+	connectAndSyncTime(address, successCB, errorCB) {
+		function func(funcSuccessCB, funcErrorCB) {
+			this.syncCurrentTime(funcSuccessCB, funcErrorCB);
+		}
+		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+	}
+
 }
 
 
