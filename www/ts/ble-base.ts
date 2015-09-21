@@ -510,11 +510,12 @@ var BleBase = function() {
 		bluetoothle.read(function(obj) { // read success
 				if (obj.status == "read")
 				{
-					var currentConsumption = bluetoothle.encodedStringToBytes(obj.value);
-					BleUtils.debug("currentConsumption: " + currentConsumption[0]);
+					var arr = bluetoothle.encodedStringToBytes(obj.value);
+					var currentConsumption = Math.sqrt(BleUtils.byteArrayToUint32(arr, 0));
+					BleUtils.debug("currentConsumption: " + currentConsumption);
 
 					// todo: check if current consumption is only 1 byte
-					callback(currentConsumption[0]);
+					callback(currentConsumption);
 				}
 				else
 				{

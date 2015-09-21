@@ -672,10 +672,11 @@ var BleBase = function () {
         var paramsObj = { "address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_CONSUMPTION_UUID };
         bluetoothle.read(function (obj) {
             if (obj.status == "read") {
-                var currentConsumption = bluetoothle.encodedStringToBytes(obj.value);
-                BleUtils.debug("currentConsumption: " + currentConsumption[0]);
+                var arr = bluetoothle.encodedStringToBytes(obj.value);
+                var currentConsumption = Math.sqrt(BleUtils.byteArrayToUint32(arr, 0));
+                BleUtils.debug("currentConsumption: " + currentConsumption);
                 // todo: check if current consumption is only 1 byte
-                callback(currentConsumption[0]);
+                callback(currentConsumption);
             }
             else {
                 BleUtils.debug("Unexpected read status: " + obj.status);
@@ -1595,6 +1596,7 @@ var BleExt = (function () {
         this.characteristics = {};
         this.state = BleState.uninitialized;
         this.scanFilter = BleFilter.all;
+        this.scanTimer = 0;
     }
     // TODO: just inherit from base class
     BleExt.prototype.init = function (successCB, errorCB) {
@@ -1662,17 +1664,58 @@ var BleExt = (function () {
             if (scanCB)
                 scanCB(obj);
         }.bind(this));
+        var self = this;
+        self.scanTimer = setInterval(function () {
+            self.stopScan(function () {
+                self.startScan(scanCB, errorCB);
+            }, errorCB);
+        }, 1000 // RSSI values only get updated by scanning again
+        );
     };
     // TODO: just inherit from base class
     BleExt.prototype.stopScan = function (successCB, errorCB) {
         this.state = BleState.initialized;
+        clearInterval(this.scanTimer);
         this.ble.stopEndlessScan();
         if (successCB)
             successCB();
     };
-    BleExt.prototype.connect = function (address, successCB, errorCB) {
+    // connect(address, successCB, errorCB) {
+    // 	BleUtils.debug("Connect");
+    // 	var self = this;
+    // 	if (this.checkState(BleState.initialized)) {
+    // 		BleUtils.debug("connecting ...");
+    // 		if (address) {
+    // 			this.setTarget(address);
+    // 		}
+    // 		this.state = BleState.connecting;
+    // 		this.ble.connectDevice(
+    // 			this.targetAddress,
+    // 			5,
+    // 			function(success) {
+    // 				if (success) {
+    // 					self.onConnect();
+    // 					if (successCB) successCB();
+    // 				}
+    // 				else {
+    // 					self.onDisconnect();
+    // 					if (errorCB) errorCB();
+    // 				}
+    // 			}
+    // 		);
+    // 	}
+    // 	else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+    // 		BleUtils.debug("already connected");
+    // 		self.onConnect();
+    // 		if (successCB) successCB();
+    // 	}
+    // 	else {
+    // 		BleUtils.debug("wrong state");
+    // 		if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+    // 	}
+    // }
+    BleExt.prototype.connectAndDiscover = function (address, characteristicCB, successCB, errorCB) {
         BleUtils.debug("Connect");
-        var self = this;
         if (this.checkState(BleState.initialized)) {
             BleUtils.debug("connecting ...");
             if (address) {
@@ -1681,20 +1724,28 @@ var BleExt = (function () {
             this.state = BleState.connecting;
             this.ble.connectDevice(this.targetAddress, 5, function (success) {
                 if (success) {
-                    self.onConnect();
-                    if (successCB)
-                        successCB();
+                    this.onConnect();
+                    this.ble.discoverServices(this.targetAddress, function (serviceUuid, characteristicUuid) {
+                        this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+                        if (characteristicCB)
+                            characteristicCB(serviceUuid, characteristicUuid);
+                    }.bind(this), successCB, function (msg) {
+                        BleUtils.debug(msg);
+                        this.disconnect(null, null);
+                        if (errorCB)
+                            errorCB(msg);
+                    }.bind(this));
                 }
                 else {
-                    self.onDisconnect();
+                    this.onDisconnect();
                     if (errorCB)
                         errorCB();
                 }
-            });
+            }.bind(this));
         }
         else if (this.checkState(BleState.connected) && this.targetAddress == address) {
             BleUtils.debug("already connected");
-            self.onConnect();
+            this.onConnect();
             if (successCB)
                 successCB();
         }
@@ -1721,16 +1772,23 @@ var BleExt = (function () {
         BleUtils.debug("Close");
         this.ble.closeDevice(this.targetAddress, successCB, errorCB);
     };
-    BleExt.prototype.discoverServices = function (characteristicCB, successCB, errorCB) {
-        this.ble.discoverServices(this.targetAddress, function (serviceUuid, characteristicUuid) {
-            this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-            if (characteristicCB)
-                characteristicCB(serviceUuid, characteristicUuid);
-        }.bind(this), successCB, errorCB);
-    };
+    // discoverServices(characteristicCB, successCB, errorCB) {
+    // 	this.ble.discoverServices(
+    // 		this.targetAddress,
+    // 		function(serviceUuid, characteristicUuid) {
+    // 			this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+    // 			if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
+    // 		}.bind(this),
+    // 		successCB,
+    // 		errorCB
+    // 	);
+    // }
     BleExt.prototype.hasCharacteristic = function (characteristic) {
-        console.log("characteristics: " + JSON.stringify(this.characteristics));
-        return this.characteristics.hasOwnProperty(characteristic);
+        var result = this.characteristics.hasOwnProperty(characteristic);
+        if (!result) {
+            BleUtils.debug(characteristic + " not found: " + JSON.stringify(this.characteristics));
+        }
+        return result;
     };
     // Called on successful connect
     BleExt.prototype.onConnect = function () {
@@ -1766,19 +1824,6 @@ var BleExt = (function () {
     };
     BleExt.prototype.getDeviceList = function () { return this.devices; };
     BleExt.prototype.getState = function () { return this.state; };
-    BleExt.prototype.connectAndDiscover = function (address, characteristicCB, successCB, errorCB) {
-        var connectionSuccess = function () {
-            this.discoverServices(characteristicCB, successCB, function (msg) {
-                BleUtils.debug(msg);
-                this.disconnect();
-                if (errorCB)
-                    errorCB(msg);
-            }.bind(this));
-        };
-        this.connect(address, 
-        //			timeout,
-        connectionSuccess.bind(this), errorCB);
-    };
     /* Connects, discovers characteristic, executes given function, then disconnects
      */
     BleExt.prototype.connectExecuteAndDisconnect = function (address, func, successCB, errorCB) {
@@ -1832,7 +1877,8 @@ var BleExt = (function () {
         this.writePWM(0, successCB, errorCB);
     };
     BleExt.prototype.writePWM = function (pwm, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_PWM_UUID)) {
+            console.error("pwm characteristic not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1847,7 +1893,8 @@ var BleExt = (function () {
         this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readPWM = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_PWM_UUID)) {
+            console.error("pwm characteristic not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1872,8 +1919,9 @@ var BleExt = (function () {
         }, errorCB);
     };
     BleExt.prototype.readCurrentConsumption = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-            !this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+            !this.hasCharacteristic(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1882,12 +1930,13 @@ var BleExt = (function () {
         this.ble.sampleCurrent(this.targetAddress, 0x01, function () {
             setTimeout(function () {
                 self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
-            }, 100);
+            }, 1000);
         }); // TODO: should have an errorCB
     };
     BleExt.prototype.readCurrentCurve = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-            !this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CURVE_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+            !this.hasCharacteristic(BleTypes.CHAR_CURRENT_CURVE_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1900,7 +1949,8 @@ var BleExt = (function () {
         }); // TODO: should have an errorCB
     };
     BleExt.prototype.writeCurrentLimit = function (value, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1909,7 +1959,8 @@ var BleExt = (function () {
         //this.ble.writeCurrentLimit(this.targetAddress, value)
     };
     BleExt.prototype.readCurrentLimit = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1921,7 +1972,8 @@ var BleExt = (function () {
     // Device Information Service //
     ////////////////////////////////
     BleExt.prototype.readHardwareRevision = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1929,7 +1981,8 @@ var BleExt = (function () {
         this.ble.readHardwareRevision(this.targetAddress, successCB, errorCB);
     };
     BleExt.prototype.readFirmwareRevision = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1940,7 +1993,8 @@ var BleExt = (function () {
     // General service //
     /////////////////////
     BleExt.prototype.reset = function (value, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_RESET_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_RESET_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1958,7 +2012,8 @@ var BleExt = (function () {
     };
     // DFU Mode
     BleExt.prototype.resetToApplication = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CONTROL_POINT_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_CONTROL_POINT_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1970,7 +2025,8 @@ var BleExt = (function () {
         }, errorCB);
     };
     BleExt.prototype.readTemperature = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_TEMPERATURE_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1978,7 +2034,8 @@ var BleExt = (function () {
         this.ble.readTemperature(this.targetAddress, successCB); //TODO: should have an errorCB
     };
     BleExt.prototype.writeMeshMessage = function (obj, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_MESH_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_MESH_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -1987,12 +2044,13 @@ var BleExt = (function () {
         this.ble.writeMeshMessage(this.targetAddress, obj, successCB, errorCB);
     };
     BleExt.prototype.hasConfigurationCharacteristics = function () {
-        return this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) &&
-            this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID) &&
-            this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID);
+        return this.hasCharacteristic(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) &&
+            this.hasCharacteristic(BleTypes.CHAR_GET_CONFIGURATION_UUID) &&
+            this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID);
     };
     BleExt.prototype.writeConfiguration = function (obj, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+            console.error("characteristics not found!");
             return;
         }
         BleUtils.debug("Set config");
@@ -2005,8 +2063,8 @@ var BleExt = (function () {
         this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readConfiguration = function (configurationType, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
-            !this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
+            !this.hasCharacteristic(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
             BleUtils.debug("Missing characteristic UUID");
             if (errorCB)
                 errorCB();
@@ -2209,7 +2267,8 @@ var BleExt = (function () {
     };
     // TODO: value should be an object with ssid and pw
     BleExt.prototype.writeWifi = function (value, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2244,7 +2303,8 @@ var BleExt = (function () {
     // Localization service //
     //////////////////////////
     BleExt.prototype.readTrackedDevices = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2252,7 +2312,8 @@ var BleExt = (function () {
         this.ble.getTrackedDevices(this.targetAddress, successCB); //TODO: should have an errorCB
     };
     BleExt.prototype.writeTrackedDevice = function (deviceAddress, rssiThreshold, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2260,7 +2321,8 @@ var BleExt = (function () {
         BleUtils.debug("TODO");
     };
     BleExt.prototype.readScannedDevices = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2268,7 +2330,8 @@ var BleExt = (function () {
         this.ble.listDevices(this.targetAddress, successCB); //TODO: should have an errorCB
     };
     BleExt.prototype.writeScanDevices = function (scan, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_SCAN_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_DEVICE_SCAN_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2293,7 +2356,8 @@ var BleExt = (function () {
     // Schedule Service //
     ////////////////////////////////
     BleExt.prototype.writeCurrentTime = function (posixTime, successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;
@@ -2302,7 +2366,8 @@ var BleExt = (function () {
         this.ble.writeCurrentTime(this.targetAddress, posixTime, successCB, errorCB);
     };
     BleExt.prototype.readCurrentTime = function (successCB, errorCB) {
-        if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+            console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
             return;

@@ -88,6 +88,7 @@ class BleExt {
 	state = BleState.uninitialized;
 	disconnectTimeout;
 	scanFilter = BleFilter.all;
+	scanTimer = 0;
 
 	// TODO: just inherit from base class
 	init(successCB, errorCB) {
@@ -161,18 +162,68 @@ class BleExt {
 				if (scanCB) scanCB(obj);
 			}.bind(this)
 		);
+
+		var self = this;
+		self.scanTimer = setInterval(
+			function() {
+				self.stopScan(function() {
+					self.startScan(scanCB, errorCB);
+				}, errorCB);
+			},
+			1000 // RSSI values only get updated by scanning again
+			// best circumvent by first time scan for longer time, around 10 seconds
+			// and then use a frequent update of every 200 ms for example
+		);
 	}
 
 	// TODO: just inherit from base class
 	stopScan(successCB, errorCB) {
 		this.state = BleState.initialized;
+		clearInterval(this.scanTimer);
 		this.ble.stopEndlessScan();
 		if (successCB) successCB();
 	}
 
-	connect(address, successCB, errorCB) {
+	// connect(address, successCB, errorCB) {
+	// 	BleUtils.debug("Connect");
+	// 	var self = this;
+
+	// 	if (this.checkState(BleState.initialized)) {
+	// 		BleUtils.debug("connecting ...");
+
+	// 		if (address) {
+	// 			this.setTarget(address);
+	// 		}
+
+	// 		this.state = BleState.connecting;
+	// 		this.ble.connectDevice(
+	// 			this.targetAddress,
+	// 			5,
+	// 			function(success) {
+	// 				if (success) {
+	// 					self.onConnect();
+	// 					if (successCB) successCB();
+	// 				}
+	// 				else {
+	// 					self.onDisconnect();
+	// 					if (errorCB) errorCB();
+	// 				}
+	// 			}
+	// 		);
+	// 	}
+	// 	else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+	// 		BleUtils.debug("already connected");
+	// 		self.onConnect();
+	// 		if (successCB) successCB();
+	// 	}
+	// 	else {
+	// 		BleUtils.debug("wrong state");
+	// 		if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+	// 	}
+	// }
+
+	connectAndDiscover(address, characteristicCB, successCB, errorCB) {
 		BleUtils.debug("Connect");
-		var self = this;
 
 		if (this.checkState(BleState.initialized)) {
 			BleUtils.debug("connecting ...");
@@ -187,19 +238,31 @@ class BleExt {
 				5,
 				function(success) {
 					if (success) {
-						self.onConnect();
-						if (successCB) successCB();
+						this.onConnect();
+						this.ble.discoverServices(
+							this.targetAddress,
+							function(serviceUuid, characteristicUuid) {
+								this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+								if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
+							}.bind(this),
+							successCB,
+							function(msg) {
+								BleUtils.debug(msg);
+								this.disconnect(null, null);
+								if (errorCB) errorCB(msg);
+							}.bind(this)
+						);
 					}
 					else {
-						self.onDisconnect();
+						this.onDisconnect();
 						if (errorCB) errorCB();
 					}
-				}
+				}.bind(this)
 			);
 		}
 		else if (this.checkState(BleState.connected) && this.targetAddress == address) {
 			BleUtils.debug("already connected");
-			self.onConnect();
+			this.onConnect();
 			if (successCB) successCB();
 		}
 		else {
@@ -229,21 +292,24 @@ class BleExt {
 		this.ble.closeDevice(this.targetAddress, successCB, errorCB);
 	}
 
-	discoverServices(characteristicCB, successCB, errorCB) {
-		this.ble.discoverServices(
-			this.targetAddress,
-			function(serviceUuid, characteristicUuid) {
-				this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-				if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
-			}.bind(this),
-			successCB,
-			errorCB
-		);
-	}
+	// discoverServices(characteristicCB, successCB, errorCB) {
+	// 	this.ble.discoverServices(
+	// 		this.targetAddress,
+	// 		function(serviceUuid, characteristicUuid) {
+	// 			this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+	// 			if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
+	// 		}.bind(this),
+	// 		successCB,
+	// 		errorCB
+	// 	);
+	// }
 
 	hasCharacteristic(characteristic) {
-		console.log("characteristics: " + JSON.stringify(this.characteristics))
-		return this.characteristics.hasOwnProperty(characteristic);
+		var result = this.characteristics.hasOwnProperty(characteristic);
+		if (!result) {
+			BleUtils.debug(characteristic + " not found: " + JSON.stringify(this.characteristics));
+		}
+		return result;
 	}
 
 	// Called on successful connect
@@ -285,27 +351,6 @@ class BleExt {
 	getDeviceList() { return this.devices; }
 
 	getState() { return this.state; }
-
-	connectAndDiscover(address, characteristicCB, successCB, errorCB) {
-		var connectionSuccess = function () {
-			this.discoverServices(
-				characteristicCB,
-				successCB,
-				function(msg) {
-					BleUtils.debug(msg);
-					this.disconnect();
-					if (errorCB) errorCB(msg);
-				}.bind(this)
-			);
-		};
-
-		this.connect(
-			address,
-//			timeout,
-			connectionSuccess.bind(this),
-			errorCB
-		);
-	}
 
 	/* Connects, discovers characteristic, executes given function, then disconnects
 	 */
@@ -372,7 +417,8 @@ class BleExt {
 	}
 
 	writePWM(pwm, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_PWM_UUID)) {
+			console.error("pwm characteristic not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -388,7 +434,8 @@ class BleExt {
 	}
 
 	readPWM(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_PWM_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_PWM_UUID)) {
+			console.error("pwm characteristic not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -418,8 +465,9 @@ class BleExt {
 	}
 
 	readCurrentConsumption(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-			!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+			!this.hasCharacteristic(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -432,15 +480,16 @@ class BleExt {
 					function() {
 						self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
 					},
-					100
+					1000
 				);
 			}
 		); // TODO: should have an errorCB
 	}
 
 	readCurrentCurve(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-			!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_CURVE_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
+			!this.hasCharacteristic(BleTypes.CHAR_CURRENT_CURVE_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -460,7 +509,8 @@ class BleExt {
 	}
 
 	writeCurrentLimit(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -469,7 +519,8 @@ class BleExt {
 	}
 
 	readCurrentLimit(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_LIMIT_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -482,7 +533,8 @@ class BleExt {
 	////////////////////////////////
 
 	readHardwareRevision(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_HARDWARE_REVISION_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -490,7 +542,8 @@ class BleExt {
 	}
 
 	readFirmwareRevision(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_FIRMWARE_REVISION_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -502,7 +555,8 @@ class BleExt {
 	/////////////////////
 
 	reset(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_RESET_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_RESET_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -525,7 +579,8 @@ class BleExt {
 
 	// DFU Mode
 	resetToApplication(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CONTROL_POINT_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_CONTROL_POINT_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -540,7 +595,8 @@ class BleExt {
 	}
 
 	readTemperature(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_TEMPERATURE_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_TEMPERATURE_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -548,7 +604,8 @@ class BleExt {
 	}
 
 	writeMeshMessage(obj, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_MESH_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_MESH_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -557,13 +614,14 @@ class BleExt {
 	}
 
 	hasConfigurationCharacteristics() {
-		return this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) &&
-			this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID) &&
-			this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID);
+		return this.hasCharacteristic(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) &&
+			this.hasCharacteristic(BleTypes.CHAR_GET_CONFIGURATION_UUID) &&
+			this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID);
 	}
 
 	writeConfiguration(obj, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+			console.error("characteristics not found!");
 			return;
 		}
 		BleUtils.debug("Set config");
@@ -578,8 +636,8 @@ class BleExt {
 	}
 
 	readConfiguration(configurationType, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
-			!this.characteristics.hasOwnProperty(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_SELECT_CONFIGURATION_UUID) ||
+			!this.hasCharacteristic(BleTypes.CHAR_GET_CONFIGURATION_UUID)) {
 			BleUtils.debug("Missing characteristic UUID");
 			if (errorCB) errorCB();
 			return;
@@ -783,7 +841,8 @@ class BleExt {
 
 	// TODO: value should be an object with ssid and pw
 	writeWifi(value, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_SET_CONFIGURATION_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -822,7 +881,8 @@ class BleExt {
 	//////////////////////////
 
 	readTrackedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -830,7 +890,8 @@ class BleExt {
 	}
 
 	writeTrackedDevice(deviceAddress, rssiThreshold, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_ADD_TRACKED_DEVICE_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -838,7 +899,8 @@ class BleExt {
 	}
 
 	readScannedDevices(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_DEVICE_LIST_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -846,7 +908,8 @@ class BleExt {
 	}
 
 	writeScanDevices(scan : boolean, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_DEVICE_SCAN_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_DEVICE_SCAN_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -880,7 +943,8 @@ class BleExt {
 	////////////////////////////////
 
 	writeCurrentTime(posixTime, successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
@@ -889,7 +953,8 @@ class BleExt {
 	}
 
 	readCurrentTime(successCB, errorCB) {
-		if (!this.characteristics.hasOwnProperty(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_CURRENT_TIME_UUID)) {
+			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
 		}
