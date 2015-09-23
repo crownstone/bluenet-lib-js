@@ -265,7 +265,7 @@ var BleBase = function() {
 							self.parseIBeaconData(obj, data);
 						}
 						if (companyId == dobotsCompanyId) {
-							obj.isCrownstone = true;
+							self.parseDoBotsData(obj, data);
 						}
 					});
 					callback(obj);
@@ -313,7 +313,6 @@ var BleBase = function() {
 				var end = begin + el_len - 1;
 				var el_data = obj.subarray(begin, end);
 				callback(el_data);
-				return;
 			} else if (el_type === 0) {
 				// BleUtils.debug(search.toString(16) + " not found!");
 				return;
@@ -335,6 +334,26 @@ var BleBase = function() {
 			obj.calibratedRssi = BleUtils.unsignedToSignedByte(data[24]);
 		} else {
 			obj.isIBeacon = false;
+		}
+	};
+
+	self.parseDoBotsData = function(obj, data) {
+		var companyId = data[0] | data[1] << 8; // little endian
+		if (companyId == BleTypes.DOBOTS_COMPANY_ID) {
+			if (data.length >= 3) {
+				// new advertisement package
+				var deviceType = data[2];
+				if (deviceType == BleTypes.DEVICE_CROWNSTONE) {
+					obj.isCrownstone = true;
+				} else if (deviceType == BleTypes.DEVICE_DOBEACON) {
+					obj.isDoBeacon = true;
+				} else if (deviceType == BleTypes.DEVICE_FRIDGE) {
+					obj.isFridge = true;
+				}
+			} else {
+				// old advertisement package
+				obj.isCrownstone = true;
+			}
 		}
 	};
 
