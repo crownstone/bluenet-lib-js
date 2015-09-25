@@ -184,43 +184,43 @@ class BleExt {
 		if (successCB) successCB();
 	}
 
-	// connect(address, successCB, errorCB) {
-	// 	BleUtils.debug("Connect");
-	// 	var self = this;
+	connect(address, successCB, errorCB) {
+		BleUtils.debug("Connect");
+		var self = this;
 
-	// 	if (this.checkState(BleState.initialized)) {
-	// 		BleUtils.debug("connecting ...");
+		if (this.checkState(BleState.initialized)) {
+			BleUtils.debug("connecting ...");
 
-	// 		if (address) {
-	// 			this.setTarget(address);
-	// 		}
+			if (address) {
+				this.setTarget(address);
+			}
 
-	// 		this.state = BleState.connecting;
-	// 		this.ble.connectDevice(
-	// 			this.targetAddress,
-	// 			5,
-	// 			function(success) {
-	// 				if (success) {
-	// 					self.onConnect();
-	// 					if (successCB) successCB();
-	// 				}
-	// 				else {
-	// 					self.onDisconnect();
-	// 					if (errorCB) errorCB();
-	// 				}
-	// 			}
-	// 		);
-	// 	}
-	// 	else if (this.checkState(BleState.connected) && this.targetAddress == address) {
-	// 		BleUtils.debug("already connected");
-	// 		self.onConnect();
-	// 		if (successCB) successCB();
-	// 	}
-	// 	else {
-	// 		BleUtils.debug("wrong state");
-	// 		if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
-	// 	}
-	// }
+			this.state = BleState.connecting;
+			this.ble.connectDevice(
+				this.targetAddress,
+				5,
+				function(success) {
+					if (success) {
+						self.onConnect();
+						if (successCB) successCB();
+					}
+					else {
+						self.onDisconnect();
+						if (errorCB) errorCB();
+					}
+				}
+			);
+		}
+		else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+			BleUtils.debug("already connected");
+			self.onConnect();
+			if (successCB) successCB();
+		}
+		else {
+			BleUtils.debug("wrong state");
+			if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+		}
+	}
 
 	connectAndDiscover(address, characteristicCB, successCB, errorCB) {
 		BleUtils.debug("Connect");
@@ -292,17 +292,17 @@ class BleExt {
 		this.ble.closeDevice(this.targetAddress, successCB, errorCB);
 	}
 
-	// discoverServices(characteristicCB, successCB, errorCB) {
-	// 	this.ble.discoverServices(
-	// 		this.targetAddress,
-	// 		function(serviceUuid, characteristicUuid) {
-	// 			this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-	// 			if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
-	// 		}.bind(this),
-	// 		successCB,
-	// 		errorCB
-	// 	);
-	// }
+	discoverServices(characteristicCB, successCB, errorCB) {
+		this.ble.discoverServices(
+			this.targetAddress,
+			function(serviceUuid, characteristicUuid) {
+				this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+				if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
+			}.bind(this),
+			successCB,
+			errorCB
+		);
+	}
 
 	hasCharacteristic(characteristic) {
 		var result = this.characteristics.hasOwnProperty(characteristic);
