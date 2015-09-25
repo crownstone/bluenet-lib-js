@@ -516,6 +516,7 @@ var BleBase = function () {
                 var end = begin + el_len - 1;
                 var el_data = obj.subarray(begin, end);
                 callback(el_data);
+                i += el_len + 1;
             }
             else if (el_type === 0) {
                 // BleUtils.debug(search.toString(16) + " not found!");
