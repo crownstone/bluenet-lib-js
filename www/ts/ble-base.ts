@@ -134,7 +134,8 @@ var BleBase = function() {
 				}
 			},
 			function(obj) { // connectError
-				BleUtils.debug("Connect error: " + obj.error + " - " + obj.message);
+				BleUtils.debug("ERROR: " + obj.error + " - " + obj.message);
+				self.clearConnectTimeout();
 				// for now we are gonna attempt a reconnect
 				if (obj.error == 'connect') {
 					// BleUtils.debug("Attempt a disconnect, a reconnect didn't work");
@@ -150,7 +151,6 @@ var BleBase = function() {
 						callback(false);
 					}
 				} else {
-					self.clearConnectTimeout();
 					if (callback) {
 						callback(false);
 					}
