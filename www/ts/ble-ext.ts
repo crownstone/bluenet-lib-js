@@ -464,9 +464,9 @@ class BleExt {
 			errorCB);
 	}
 
-	readCurrentConsumption(successCB, errorCB) {
+	readPowerConsumption(successCB, errorCB) {
 		if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-			!this.hasCharacteristic(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+			!this.hasCharacteristic(BleTypes.CHAR_POWER_CONSUMPTION_UUID)) {
 			console.error("characteristics not found!");
 			if (errorCB) errorCB();
 			return;
@@ -478,7 +478,7 @@ class BleExt {
 			function() {
 				setTimeout(
 					function() {
-						self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
+						self.ble.readPowerConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
 					},
 					1000
 				);

@@ -33,7 +33,7 @@ var BleTypes = {
 	CHAR_PWM_UUID:                          '5b8d0001-6f20-11e4-b116-123b93f75cba',
 	CHAR_SAMPLE_CURRENT_UUID:               '5b8d0002-6f20-11e4-b116-123b93f75cba',
 	CHAR_CURRENT_CURVE_UUID:                '5b8d0003-6f20-11e4-b116-123b93f75cba',
-	CHAR_CURRENT_CONSUMPTION_UUID:          '5b8d0004-6f20-11e4-b116-123b93f75cba',
+	CHAR_POWER_CONSUMPTION_UUID:            '5b8d0004-6f20-11e4-b116-123b93f75cba',
 	CHAR_CURRENT_LIMIT_UUID:                '5b8d0005-6f20-11e4-b116-123b93f75cba',
 	//////////////////////////////////////////////////////////////////////////////
 

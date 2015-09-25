@@ -30,7 +30,7 @@ var BleTypes = {
     CHAR_PWM_UUID: '5b8d0001-6f20-11e4-b116-123b93f75cba',
     CHAR_SAMPLE_CURRENT_UUID: '5b8d0002-6f20-11e4-b116-123b93f75cba',
     CHAR_CURRENT_CURVE_UUID: '5b8d0003-6f20-11e4-b116-123b93f75cba',
-    CHAR_CURRENT_CONSUMPTION_UUID: '5b8d0004-6f20-11e4-b116-123b93f75cba',
+    CHAR_POWER_CONSUMPTION_UUID: '5b8d0004-6f20-11e4-b116-123b93f75cba',
     CHAR_CURRENT_LIMIT_UUID: '5b8d0005-6f20-11e4-b116-123b93f75cba',
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
@@ -699,23 +699,23 @@ var BleBase = function () {
         }, paramsObj);
     };
     // TODO: should have errorCB
-    self.readCurrentConsumption = function (address, callback) {
-        BleUtils.debug("Read current consumption at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_CURRENT_CONSUMPTION_UUID);
-        var paramsObj = { "address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_CURRENT_CONSUMPTION_UUID };
+    self.readPowerConsumption = function (address, callback) {
+        BleUtils.debug("Read power consumption at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_POWER_CONSUMPTION_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_POWER_CONSUMPTION_UUID };
         bluetoothle.read(function (obj) {
             if (obj.status == "read") {
                 var arr = bluetoothle.encodedStringToBytes(obj.value);
-                var currentConsumption = Math.sqrt(BleUtils.byteArrayToUint32(arr, 0));
-                BleUtils.debug("currentConsumption: " + currentConsumption);
-                // todo: check if current consumption is only 1 byte
-                callback(currentConsumption);
+                var powerConsumption = BleUtils.byteArrayToUint16(arr, 0);
+                BleUtils.debug("PowerConsumption: " + powerConsumption);
+                // todo: check if power consumption is only 1 byte
+                callback(powerConsumption);
             }
             else {
                 BleUtils.debug("Unexpected read status: " + obj.status);
                 self.disconnectDevice(address);
             }
         }, function (obj) {
-            BleUtils.debug('Error in reading current consumption: ' + obj.error + " - " + obj.message);
+            BleUtils.debug('Error in reading power consumption: ' + obj.error + " - " + obj.message);
         }, paramsObj);
     };
     // TODO: should have errorCB
@@ -1950,9 +1950,9 @@ var BleExt = (function () {
             }
         }, errorCB);
     };
-    BleExt.prototype.readCurrentConsumption = function (successCB, errorCB) {
+    BleExt.prototype.readPowerConsumption = function (successCB, errorCB) {
         if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
-            !this.hasCharacteristic(BleTypes.CHAR_CURRENT_CONSUMPTION_UUID)) {
+            !this.hasCharacteristic(BleTypes.CHAR_POWER_CONSUMPTION_UUID)) {
             console.error("characteristics not found!");
             if (errorCB)
                 errorCB();
@@ -1961,7 +1961,7 @@ var BleExt = (function () {
         var self = this;
         this.ble.sampleCurrent(this.targetAddress, 0x01, function () {
             setTimeout(function () {
-                self.ble.readCurrentConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
+                self.ble.readPowerConsumption(self.targetAddress, successCB); //TODO: should have an errorCB
             }, 1000);
         }); // TODO: should have an errorCB
     };
