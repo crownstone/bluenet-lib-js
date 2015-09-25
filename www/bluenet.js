@@ -1713,40 +1713,40 @@ var BleExt = (function () {
         if (successCB)
             successCB();
     };
-    BleExt.prototype.connect = function (address, successCB, errorCB) {
-        BleUtils.debug("Connect");
-        var self = this;
-        if (this.checkState(BleState.initialized)) {
-            BleUtils.debug("connecting ...");
-            if (address) {
-                this.setTarget(address);
-            }
-            this.state = BleState.connecting;
-            this.ble.connectDevice(this.targetAddress, 5, function (success) {
-                if (success) {
-                    self.onConnect();
-                    if (successCB)
-                        successCB();
-                }
-                else {
-                    self.onDisconnect();
-                    if (errorCB)
-                        errorCB();
-                }
-            });
-        }
-        else if (this.checkState(BleState.connected) && this.targetAddress == address) {
-            BleUtils.debug("already connected");
-            self.onConnect();
-            if (successCB)
-                successCB();
-        }
-        else {
-            BleUtils.debug("wrong state");
-            if (errorCB)
-                errorCB("Not in correct state to connect and not connected to " + address);
-        }
-    };
+    // connect(address, successCB, errorCB) {
+    // 	BleUtils.debug("Connect");
+    // 	var self = this;
+    // 	if (this.checkState(BleState.initialized)) {
+    // 		BleUtils.debug("connecting ...");
+    // 		if (address) {
+    // 			this.setTarget(address);
+    // 		}
+    // 		this.state = BleState.connecting;
+    // 		this.ble.connectDevice(
+    // 			this.targetAddress,
+    // 			5,
+    // 			function(success) {
+    // 				if (success) {
+    // 					self.onConnect();
+    // 					if (successCB) successCB();
+    // 				}
+    // 				else {
+    // 					self.onDisconnect();
+    // 					if (errorCB) errorCB();
+    // 				}
+    // 			}
+    // 		);
+    // 	}
+    // 	else if (this.checkState(BleState.connected) && this.targetAddress == address) {
+    // 		BleUtils.debug("already connected");
+    // 		self.onConnect();
+    // 		if (successCB) successCB();
+    // 	}
+    // 	else {
+    // 		BleUtils.debug("wrong state");
+    // 		if (errorCB) errorCB("Not in correct state to connect and not connected to " + address);
+    // 	}
+    // }
     BleExt.prototype.connectAndDiscover = function (address, characteristicCB, successCB, errorCB) {
         BleUtils.debug("Connect");
         if (this.checkState(BleState.initialized)) {
@@ -1805,13 +1805,17 @@ var BleExt = (function () {
         BleUtils.debug("Close");
         this.ble.closeDevice(this.targetAddress, successCB, errorCB);
     };
-    BleExt.prototype.discoverServices = function (characteristicCB, successCB, errorCB) {
-        this.ble.discoverServices(this.targetAddress, function (serviceUuid, characteristicUuid) {
-            this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
-            if (characteristicCB)
-                characteristicCB(serviceUuid, characteristicUuid);
-        }.bind(this), successCB, errorCB);
-    };
+    // discoverServices(characteristicCB, successCB, errorCB) {
+    // 	this.ble.discoverServices(
+    // 		this.targetAddress,
+    // 		function(serviceUuid, characteristicUuid) {
+    // 			this.onCharacteristicDiscover(serviceUuid, characteristicUuid);
+    // 			if (characteristicCB) characteristicCB(serviceUuid, characteristicUuid);
+    // 		}.bind(this),
+    // 		successCB,
+    // 		errorCB
+    // 	);
+    // }
     BleExt.prototype.hasCharacteristic = function (characteristic) {
         var result = this.characteristics.hasOwnProperty(characteristic);
         if (!result) {
