@@ -4,6 +4,10 @@
 
 JavaScript library to interface with devices running bluenet
 
+# Example
+
+For a simple example of how to use the library, check out the [cordova-bluenet-example](https://github.com/dobots/cordova-bluenet-example)
+
 # Compile
 
 compile library with:
