@@ -48,7 +48,7 @@ var BleUtils = {
 
 
 	/*
-	 * Conversions from hex strings to number array
+	 * Conversions from hex strings to byte array
 	 */
 	hexStringToByteArray : function(value) {
 		var strArr = [];
@@ -75,7 +75,7 @@ var BleUtils = {
 	},
 
 	/*
-	 * Conversion between hex string and bluetooth address
+	 * Conversion from string to bluetooth address (byte array)
 	 */
 	hexStringToBluetoothAddress : function(value) {
 		var arrInv = BleUtils.hexStringToByteArray(value);
@@ -87,6 +87,24 @@ var BleUtils = {
 			arr[5-i] = arrInv[i];
 		}
 		return arr;
+	},
+
+	/*
+	 * Conversion from bluetooth address (byte array) to string
+	 */
+	bluetoothAddressToHexString : function(arr8, startIndex) {
+		if (!startIndex) {
+			startIndex = 0;
+		}
+		if (arr8.length < 6+startIndex) {
+			return "";
+		}
+		// Inverse read
+		var str = BleUtils.uint8toHexString(arr8[5+startIndex]);
+		for (var i=4+startIndex; i>=0+startIndex; i--) {
+			str += ":" + BleUtils.uint8toHexString(arr8[i]);
+		}
+		return str;
 	},
 
 	/*
