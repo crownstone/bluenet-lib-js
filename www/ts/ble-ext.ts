@@ -895,7 +895,8 @@ class BleExt {
 			if (errorCB) errorCB();
 			return;
 		}
-		BleUtils.debug("TODO");
+		// TODO: check if deviceAddress is a string or byte array, if string: use hexStringToBluetoothAddress()
+		this.ble.addTrackedDevice(this.targetAddress, deviceAddress, rssiThreshold, successCB, errorCB);
 	}
 
 	readScannedDevices(successCB, errorCB) {

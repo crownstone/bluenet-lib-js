@@ -1369,11 +1369,12 @@ var BleBase = function () {
             BleUtils.debug('Error in reading tracked devices: ' + obj.error + " - " + obj.message);
         }, paramsObj);
     };
-    self.addTrackedDevice = function (address, bt_address, rssi) {
+    self.addTrackedDevice = function (address, bt_address, rssi, successCB, errorCB) {
         var u8 = new Uint8Array(7);
         for (var i = 0; i < 6; i++) {
-            u8[i] = parseInt(bt_address[i], 16);
-            BleUtils.debug("i: " + u8[i]);
+            //u8[i] = parseInt(bt_address[i], 16);
+            //BleUtils.debug("i: " + u8[i]);
+            u8[i] = bt_address[i];
         }
         u8[6] = rssi;
         var v = bluetoothle.bytesToEncodedString(u8);
@@ -1382,12 +1383,18 @@ var BleBase = function () {
         bluetoothle.write(function (obj) {
             if (obj.status == 'written') {
                 BleUtils.debug('Successfully written to add tracked device characteristic - ' + obj.status);
+                if (successCB)
+                    successCB();
             }
             else {
                 BleUtils.debug('Writing to add tracked device characteristic was not successful' + obj);
+                if (errorCB)
+                    errorCB();
             }
         }, function (obj) {
             BleUtils.debug("Error in writing to add tracked device characteristic: " + obj.error + " - " + obj.message);
+            if (errorCB)
+                errorCB();
         }, paramsObj);
     };
     self.writeCurrentTime = function (address, value, successCB, errorCB) {
@@ -2351,7 +2358,8 @@ var BleExt = (function () {
                 errorCB();
             return;
         }
-        BleUtils.debug("TODO");
+        // TODO: check if deviceAddress is a string or byte array, if string: use hexStringToBluetoothAddress()
+        this.ble.addTrackedDevice(this.targetAddress, deviceAddress, rssiThreshold, successCB, errorCB);
     };
     BleExt.prototype.readScannedDevices = function (successCB, errorCB) {
         if (!this.hasCharacteristic(BleTypes.CHAR_DEVICE_LIST_UUID)) {

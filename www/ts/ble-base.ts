@@ -1298,15 +1298,12 @@ var BleBase = function() {
 		BleUtils.debug("Read device list at service " + BleTypes.INDOOR_LOCALIZATION_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID );
 		var paramsObj = {"address": address, "serviceUuid": BleTypes.INDOOR_LOCALIZATION_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_LIST_TRACKED_DEVICES_UUID };
 		bluetoothle.read(function(obj) { // read success
-				if (obj.status == "read")
-				{
+				if (obj.status == "read") {
 					var list = bluetoothle.encodedStringToBytes(obj.value);
 					BleUtils.debug("list: " + list[0]);
-
 					callback(list);
 				}
-				else
-				{
+				else {
 					BleUtils.debug("Unexpected read status: " + obj.status);
 					self.disconnectDevice(address);
 				}
@@ -1317,11 +1314,10 @@ var BleBase = function() {
 			paramsObj);
 	};
 
-	self.addTrackedDevice = function(address, bt_address, rssi) {
+	self.addTrackedDevice = function(address, bt_address, rssi, successCB, errorCB) {
 		var u8 = new Uint8Array(7);
 		for (var i = 0; i < 6; i++) {
-			u8[i] = parseInt(bt_address[i], 16);
-			BleUtils.debug("i: " + u8[i]);
+			u8[i] = bt_address[i];
 		}
 		u8[6] = rssi;
 		var v = bluetoothle.bytesToEncodedString(u8);
@@ -1330,12 +1326,15 @@ var BleBase = function() {
 		bluetoothle.write(function(obj) { // write success
 				if (obj.status == 'written') {
 					BleUtils.debug('Successfully written to add tracked device characteristic - ' + obj.status);
+					if (successCB) successCB();
 				} else {
 					BleUtils.debug('Writing to add tracked device characteristic was not successful' + obj);
+					if (errorCB) errorCB();
 				}
 			},
 			function(obj) { // write error
 				BleUtils.debug("Error in writing to add tracked device characteristic: " + obj.error + " - " + obj.message);
+				if (errorCB) errorCB();
 			},
 			paramsObj);
 	};
