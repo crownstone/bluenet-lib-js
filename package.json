@@ -1,5 +1,5 @@
 {
-    "version": "0.1.4",
+    "version": "0.1.5",
     "name": "nl.dobots.bluenet",
     "cordova_name": "BlueNet",
     "description": "Library to interface with bluetooth devices running BlueNet",
