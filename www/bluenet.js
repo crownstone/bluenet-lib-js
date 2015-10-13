@@ -140,7 +140,7 @@ var BleUtils = {
      * Conversions from number to hex string
      */
     /*
-     * Conversions from hex strings to number array
+     * Conversions from hex strings to byte array
      */
     hexStringToByteArray: function (value) {
         var strArr = [];
@@ -164,7 +164,7 @@ var BleUtils = {
     byteArrayTohexString: function (value) {
     },
     /*
-     * Conversion between hex string and bluetooth address
+     * Conversion from string to bluetooth address (byte array)
      */
     hexStringToBluetoothAddress: function (value) {
         var arrInv = BleUtils.hexStringToByteArray(value);
@@ -176,6 +176,23 @@ var BleUtils = {
             arr[5 - i] = arrInv[i];
         }
         return arr;
+    },
+    /*
+     * Conversion from bluetooth address (byte array) to string
+     */
+    bluetoothAddressToHexString: function (arr8, startIndex) {
+        if (!startIndex) {
+            startIndex = 0;
+        }
+        if (arr8.length < 6 + startIndex) {
+            return "";
+        }
+        // Inverse read
+        var str = BleUtils.uint8toHexString(arr8[5 + startIndex]);
+        for (var i = 4 + startIndex; i >= 0 + startIndex; i--) {
+            str += ":" + BleUtils.uint8toHexString(arr8[i]);
+        }
+        return str;
     },
     /*
      * Convert an unsigned byte to a signed byte
@@ -1372,8 +1389,6 @@ var BleBase = function () {
     self.addTrackedDevice = function (address, bt_address, rssi, successCB, errorCB) {
         var u8 = new Uint8Array(7);
         for (var i = 0; i < 6; i++) {
-            //u8[i] = parseInt(bt_address[i], 16);
-            //BleUtils.debug("i: " + u8[i]);
             u8[i] = bt_address[i];
         }
         u8[6] = rssi;
@@ -1695,7 +1710,7 @@ var BleExt = (function () {
             // }
             if ((this.scanFilter != BleFilter.all) &&
                 ((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
-                    (this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
+                    (this.scanFilter == BleFilter.doBeacon && !obj.isDoBeacon) ||
                     (this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon))) {
                 return;
             }

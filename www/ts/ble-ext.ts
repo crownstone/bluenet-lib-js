@@ -153,7 +153,7 @@ class BleExt {
 				// }
 				if ((this.scanFilter != BleFilter.all) &&
 					((this.scanFilter == BleFilter.crownstone && !obj.isCrownstone) ||
-					(this.scanFilter == BleFilter.doBeacon && !obj.isIBeacon) ||
+					(this.scanFilter == BleFilter.doBeacon && !obj.isDoBeacon) ||
 					(this.scanFilter == BleFilter.iBeacon && !obj.isIBeacon))) {
 					return;
 				}
