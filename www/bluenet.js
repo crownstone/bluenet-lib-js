@@ -32,6 +32,7 @@ var BleTypes = {
     CHAR_CURRENT_CURVE_UUID: '5b8d0003-6f20-11e4-b116-123b93f75cba',
     CHAR_POWER_CONSUMPTION_UUID: '5b8d0004-6f20-11e4-b116-123b93f75cba',
     CHAR_CURRENT_LIMIT_UUID: '5b8d0005-6f20-11e4-b116-123b93f75cba',
+    CHAR_RELAY_UUID: '5b8d0006-6f20-11e4-b116-123b93f75cba',
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
     // Schedule Service
@@ -707,6 +708,47 @@ var BleBase = function () {
                 var pwm = bluetoothle.encodedStringToBytes(obj.value);
                 BleUtils.debug("pwm: " + pwm[0]);
                 callback(pwm[0]);
+            }
+            else {
+                BleUtils.debug("Unexpected read status: " + obj.status);
+                self.disconnectDevice(address);
+            }
+        }, function (obj) {
+            BleUtils.debug('Error in reading current consumption: ' + obj.error + " - " + obj.message);
+        }, paramsObj);
+    };
+    self.writeRelay = function (address, value, successCB, errorCB) {
+        var u8 = new Uint8Array(1);
+        u8[0] = value;
+        var v = bluetoothle.bytesToEncodedString(u8);
+        BleUtils.debug("Write " + v + " at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_RELAY_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_RELAY_UUID, "value": v };
+        bluetoothle.write(function (obj) {
+            if (obj.status == 'written') {
+                BleUtils.debug('Successfully written to relay characteristic - ' + obj.status);
+                if (successCB)
+                    successCB();
+            }
+            else {
+                BleUtils.debug('Writing to relay characteristic was not successful' + obj);
+                if (errorCB)
+                    errorCB();
+            }
+        }, function (obj) {
+            BleUtils.debug("Error in writing to relay characteristic: " + obj.error + " - " + obj.message);
+            if (errorCB)
+                errorCB();
+        }, paramsObj);
+    };
+    // TODO: should have errorCB
+    self.readRelay = function (address, callback) {
+        BleUtils.debug("Read current consumption at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_RELAY_UUID);
+        var paramsObj = { "address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_RELAY_UUID };
+        bluetoothle.read(function (obj) {
+            if (obj.status == "read") {
+                var relay = bluetoothle.encodedStringToBytes(obj.value);
+                BleUtils.debug("relay: " + relay[0]);
+                callback(relay[0]);
             }
             else {
                 BleUtils.debug("Unexpected read status: " + obj.status);
@@ -1972,6 +2014,38 @@ var BleExt = (function () {
                 this.connectAndWritePWM(address, 255, successCB, errorCB);
             }
         }, errorCB);
+    };
+    BleExt.prototype.writeRelay = function (relay, successCB, errorCB) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_RELAY_UUID)) {
+            console.error("relay characteristic not found!");
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        BleUtils.debug("Set relay to " + relay);
+        this.ble.writeRelay(this.targetAddress, relay, successCB, errorCB);
+    };
+    BleExt.prototype.connectAndwriteRelay = function (address, relay, successCB, errorCB) {
+        function func(funcSuccessCB, funcErrorCB) {
+            this.writeRelay(relay, funcSuccessCB, funcErrorCB);
+        }
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+    };
+    BleExt.prototype.readRelay = function (successCB, errorCB) {
+        if (!this.hasCharacteristic(BleTypes.CHAR_RELAY_UUID)) {
+            console.error("relay characteristic not found!");
+            if (errorCB)
+                errorCB();
+            return;
+        }
+        BleUtils.debug("Reading current Relay value");
+        this.ble.readRelay(this.targetAddress, successCB); //TODO: should have an errorCB
+    };
+    BleExt.prototype.connectAndreadRelay = function (address, successCB, errorCB) {
+        function func(funcSuccessCB, funcErrorCB) {
+            this.readRelay(funcSuccessCB, funcErrorCB);
+        }
+        this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
     };
     BleExt.prototype.readPowerConsumption = function (successCB, errorCB) {
         if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||

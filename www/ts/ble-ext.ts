@@ -464,6 +464,40 @@ class BleExt {
 			errorCB);
 	}
 
+	writeRelay(relay, successCB, errorCB) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_RELAY_UUID)) {
+			console.error("relay characteristic not found!");
+			if (errorCB) errorCB();
+			return;
+		}
+		BleUtils.debug("Set relay to " + relay);
+		this.ble.writeRelay(this.targetAddress, relay, successCB, errorCB);
+	}
+
+	connectAndwriteRelay(address, relay, successCB, errorCB) {
+		function func(funcSuccessCB, funcErrorCB) {
+			this.writeRelay(relay, funcSuccessCB, funcErrorCB);
+		}
+		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+	}
+
+	readRelay(successCB, errorCB) {
+		if (!this.hasCharacteristic(BleTypes.CHAR_RELAY_UUID)) {
+			console.error("relay characteristic not found!");
+			if (errorCB) errorCB();
+			return;
+		}
+		BleUtils.debug("Reading current Relay value");
+		this.ble.readRelay(this.targetAddress, successCB); //TODO: should have an errorCB
+	}
+
+	connectAndreadRelay(address, successCB, errorCB) {
+		function func(funcSuccessCB, funcErrorCB) {
+			this.readRelay(funcSuccessCB, funcErrorCB);
+		}
+		this.connectExecuteAndDisconnect(address, func, successCB, errorCB);
+	}
+
 	readPowerConsumption(successCB, errorCB) {
 		if (!this.hasCharacteristic(BleTypes.CHAR_SAMPLE_CURRENT_UUID) ||
 			!this.hasCharacteristic(BleTypes.CHAR_POWER_CONSUMPTION_UUID)) {

@@ -523,6 +523,55 @@ var BleBase = function() {
 			paramsObj);
 	};
 
+	self.writeRelay = function(address, value, successCB, errorCB) {
+		var u8 = new Uint8Array(1);
+		u8[0] = value;
+		var v = bluetoothle.bytesToEncodedString(u8);
+		BleUtils.debug("Write " + v + " at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_RELAY_UUID );
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_RELAY_UUID , "value" : v};
+		bluetoothle.write(function(obj) { // write success
+				if (obj.status == 'written') {
+					BleUtils.debug('Successfully written to relay characteristic - ' + obj.status);
+
+					if (successCB) successCB();
+				} else {
+					BleUtils.debug('Writing to relay characteristic was not successful' + obj);
+
+					if (errorCB) errorCB();
+				}
+			},
+			function(obj) { // wrtie error
+				BleUtils.debug("Error in writing to relay characteristic: " + obj.error + " - " + obj.message);
+
+				if (errorCB) errorCB();
+			},
+			paramsObj);
+	};
+
+	// TODO: should have errorCB
+	self.readRelay = function(address, callback) {
+		BleUtils.debug("Read current consumption at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_RELAY_UUID);
+		var paramsObj = {"address": address, "serviceUuid": BleTypes.POWER_SERVICE_UUID, "characteristicUuid": BleTypes.CHAR_RELAY_UUID};
+		bluetoothle.read(function(obj) { // read success
+				if (obj.status == "read")
+				{
+					var relay = bluetoothle.encodedStringToBytes(obj.value);
+					BleUtils.debug("relay: " + relay[0]);
+
+					callback(relay[0]);
+				}
+				else
+				{
+					BleUtils.debug("Unexpected read status: " + obj.status);
+					self.disconnectDevice(address);
+				}
+			},
+			function(obj) { // read error
+				BleUtils.debug('Error in reading current consumption: ' + obj.error + " - " + obj.message);
+			},
+			paramsObj);
+	};
+
 	// TODO: should have errorCB
 	self.readPowerConsumption = function(address, callback) {
 		BleUtils.debug("Read power consumption at service " + BleTypes.POWER_SERVICE_UUID + ' and characteristic ' + BleTypes.CHAR_POWER_CONSUMPTION_UUID);
